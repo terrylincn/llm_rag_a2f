@@ -1,7 +1,8 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
 import os
 import shutil
+import searchk
 
 app = FastAPI()
 
@@ -29,6 +30,14 @@ async def main():
 </body>
     """
     return HTMLResponse(content=content)
+
+
+@app.post("/search")
+async def search(
+text: str = Form(...,title="",description=""), 
+):
+    ret = searchk.query(text)
+    return ret
 
 if __name__ == "__main__":
     import uvicorn
