@@ -1,6 +1,7 @@
 from sentence_transformers import SentenceTransformer
 import requests
 import json
+import time
 from search import knn_search
 from enhanceknowledgebase import EnhancedKnowledgeBase
 
@@ -8,15 +9,21 @@ directory_path = "data"
 enhanced_kb = EnhancedKnowledgeBase(directory_path)
 enhanced_kb.build_knowledge_base()
 enhanced_kb.vectorize_knowledge_base()
+model_name='./models/sentence-transformers_all-MiniLM-L6-v2'
+model = SentenceTransformer(model_name)
 
-def query(question, model_name='./models/sentence-transformers_all-MiniLM-L6-v2'):
+def query(question):
     context = []
-    model = SentenceTransformer(model_name)
     # Embed the user's question
+    t1 = time.time()
     question_embedding = model.encode([question])
+    t2 = time.time()
+    print(f'encode:{t2-t1}')
 
     # Perform KNN search to find the best matches (indices and source text)
     best_matches = knn_search(question_embedding, enhanced_kb.vectorized_knowledge, k=10)
+    t3 = time.time()
+    print(f'knn_search:{t3-t2}')
 
 
     sourcetext=""
@@ -55,6 +62,8 @@ def query(question, model_name='./models/sentence-transformers_all-MiniLM-L6-v2'
 
     else:
         print(f"Request failed with status code {response.status_code}")
+    t4 = time.time()
+    print(f'inference:{t4-t3}')
     return output
 
     

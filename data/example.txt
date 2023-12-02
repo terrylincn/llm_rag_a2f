@@ -1,5 +1,5 @@
 ### Instruction:
-Modify Audio Attributes, Set the Pitch
+Play an Audio Clip Once
 ### Input:
 ### Output:
 #Use a Prim to play an Audio Clip once.
@@ -12,3 +12,4535 @@ my_audio_prim.GetAttribute("loopCount").Set(0)
 
 audio = omni.usd.audio.get_stage_audio_interface()
 audio.spawn_voice(my_audio_prim)
+### Instruction:
+Play a Looping audio clip
+### Input:
+### Output:
+#Use a Prim to play a looping Audio Clip.
+audio = omni.usd.audio.get_stage_audio_interface()
+my_audio_prim.GetAttribute("loopCount").Set(-1)
+audio.spawn_voice(prim)
+### Instruction:
+Set the loop count
+### Input:
+### Output:
+#The loopCount attribute tells the audio engine how many times to loop a sound. The value -1 is used to loop a sound indefinitely, 0 is used to play the audio clip just once, 1 and up plays it n+1 times (where n is the value of loopCount)
+my_audio_prim.GetAttribute("loopCount").Set(-1)
+### Instruction:
+Modify Audio Attributes，Set the Pitch
+### Input:
+### Output:
+#You can programmatically change several attributes of an audio prim. The most common ones to adjust would be pitch (timeScale) and volume (gain) which can be dynamically changed as the sound is being played.
+# double the pitch
+pitch_multiplier = 2.0
+my_audio_prim.GetAttribute("timeScale").Set(pitch_multiplier)
+### Instruction:
+Modify Audio Attributes，Set the Volume
+### Input:
+### Output:
+#You can programmatically change several attributes of an audio prim. The most common ones to adjust would be pitch (timeScale) and volume (gain) which can be dynamically changed as the sound is being played.
+# set to half volume
+volume_multiplier = 0.5
+my_audio_prim.GetAttribute("gain").Set(volume_multiplier)
+### Instruction:
+Subscribe to Shutdown Events
+### Input:
+### Output:
+# App/Subscribe to Shutdown Events
+import carb.events
+import omni.kit.app
+
+# Stream where app sends shutdown events
+shutdown_stream = omni.kit.app.get_app().get_shutdown_event_stream()
+
+def on_event(e: carb.events.IEvent):
+    if e.type == omni.kit.app.POST_QUIT_EVENT_TYPE:
+        print("We are about to shutdown")
+
+sub = shutdown_stream.create_subscription_to_pop(on_event, name="name of the subscriber for debugging", order=0)
+### Instruction:
+Subscribe to Update Events
+### Input:
+### Output:
+# App/Subscribe to Update Events
+import carb.events
+import omni.kit.app
+
+update_stream = omni.kit.app.get_app().get_update_event_stream()
+
+def on_update(e: carb.events.IEvent):
+    print(f"Update: {e.payload['dt']}")
+
+sub = update_stream.create_subscription_to_pop(on_update, name="My Subscription Name")
+### Instruction:
+Create a Custom Event
+### Input:
+### Output:
+# App/Create Custom Event
+import carb.events
+import omni.kit.app
+
+# Event is unique integer id. Create it from string by hashing, using helper function.
+# [ext name].[event name] is a recommended naming convention:
+MY_CUSTOM_EVENT = carb.events.type_from_string("omni.my.extension.MY_CUSTOM_EVENT")
+
+# App provides common event bus. It is event queue which is popped every update (frame).
+bus = omni.kit.app.get_app().get_message_bus_event_stream()
+
+def on_event(e):
+    print(e.type, e.type == MY_CUSTOM_EVENT, e.payload)
+
+# Subscribe to the bus. Keep subscription objects (sub1, sub2) alive for subscription to work.
+# Push to queue is called immediately when pushed
+sub1 = bus.create_subscription_to_push_by_type(MY_CUSTOM_EVENT, on_event)
+# Pop is called on next update
+sub2 = bus.create_subscription_to_pop_by_type(MY_CUSTOM_EVENT, on_event)
+
+# Push event the bus with custom payload
+bus.push(MY_CUSTOM_EVENT, payload={"data": 2, "x": "y"})
+### Instruction:
+Startup and Shutdown functions，On Startup
+### Input:
+### Output:
+# Called when your Extension is loaded and passed its Extension ID. This is typically where your extension will create its UI and any other startup tasks that are needed.
+# ext_id is current extension id. It can be used with extension manager to query additional information, like where
+# this extension is located on filesystem.
+def on_startup(self, ext_id):
+    print("[ui.demo.ext] ui demo ext startup")
+
+    self.create_ui()
+    self.create_event_subscriptions()
+### Instruction:
+On Shutdown
+### Input:
+### Output:
+#Called when your Extension is being unloaded. This is where you do any clean up tasks like closing open files, unsubscribing from events, etc…
+def on_shutdown(self):
+    print("[ui.demo.ext] ui demo ext shutdown")
+
+    self.unsubscribe_from_events()
+### Instruction:
+Immediate
+### Input:
+### Output:
+#You can immediately enable an extension using the _immediate function.
+import omni.kit.app
+
+manager = omni.kit.app.get_app().get_extension_manager()
+
+# enable immediately
+manager.set_extension_enabled_immediate("omni.kit.window.about", True)
+print(manager.is_extension_enabled("omni.kit.window.about"))
+### Instruction:
+Non-Immediate
+### Input:
+### Output:
+#There is also a non-immediate way to enable extensions which are executed on the next update (i.e. frame). Multiple extensions can be batch enabled this way.
+import omni.kit.app
+
+manager = omni.kit.app.get_app().get_extension_manager()
+
+# multiple commands can be batched
+manager.set_extension_enabled("omni.kit.window.about", True)
+manager.set_extension_enabled("omni.kit.window.console", True)
+### Instruction:
+Get All the Registered Extensions
+### Input:
+### Output:
+#You can use the ExtensionManager from the IApp interface to query the local and remote extensions that are available to your Kit app. These functions return a list of extensions with information like: extension ID, name, version, path, and whether the extension is enabled.
+import omni.kit.app
+
+# there are a lot of extensions, print only first N entries in each loop
+PRINT_ONLY_N = 10
+
+# get all registered local extensions (enabled and disabled)
+manager = omni.kit.app.get_app().get_extension_manager()
+for ext in manager.get_extensions()[:PRINT_ONLY_N]:
+    print(ext["id"], ext["package_id"], ext["name"], ext["version"], ext["path"], ext["enabled"])
+
+# get all registered non-local extensions (from the registry)
+# this call blocks to download registry (slow). You need to call it at least once, or use refresh_registry() for non-blocking.
+manager.sync_registry()
+for ext in manager.get_registry_extensions()[:PRINT_ONLY_N]:
+    print(ext["id"], ext["package_id"], ext["name"], ext["version"], ext["path"], ext["enabled"])
+
+# functions above print all versions of each extension. There is other API to get them grouped by name (like in ext manager UI).
+# "enabled_version" and "latest_version" contains the same dict as returned by functions above, e.g. with "id", "name", etc.
+for summary in manager.fetch_extension_summaries()[:PRINT_ONLY_N]:
+    print(summary["fullname"], summary["flags"], summary["enabled_version"]["id"], summary["latest_version"]["id"])
+
+# get all versions for particular extension
+for ext in manager.fetch_extension_versions("omni.kit.window.script_editor"):
+    print(ext["id"])
+### Instruction:
+Get the Config for an Extension
+### Input:
+### Output:
+#You may want to quey how an extension is configured. ExtensionManager.get_extension_dict() will return a dictionary containing an extension’s configuration as key-value pairs.
+import omni.kit.app
+
+manager = omni.kit.app.get_app().get_extension_manager()
+
+# There could be multiple extensions with same name, but different version
+# Extension id is: [ext name]-[ext version].
+# Many functions accept extension id:
+ext_id = manager.get_enabled_extension_id("omni.kit.window.script_editor")
+data = manager.get_extension_dict(ext_id)
+
+# Extension dict contains whole extension.toml as well as some runtime data:
+# package section
+print(data["package"])
+# is enabled?
+print(data["state/enabled"])
+# resolved runtime dependencies
+print(data["state/dependencies"])
+# time it took to start it (ms)
+print(data["state/startupTime"])
+
+# can be converted to python dict for convenience and to prolong lifetime
+data = data.get_dict()
+print(type(data))
+### Instruction:
+Get the File Path to an Extension
+### Input:
+### Output:
+#If you want to refer to assets included with your extension, you need to first get the file path to the extension. You can do this through ExtensionManager from the IApp interface. There are three ways to do this:
+#ExtensionManager.get_extension_path()
+#ExtensionManager.get_extension_dict()
+#ExtensionManager.get_extension_path_by_module()
+import omni.kit.app
+
+manager = omni.kit.app.get_app().get_extension_manager()
+
+# There could be multiple extensions with same name, but different version
+# Extension id is: [ext name]-[ext version].
+# Many functions accept extension id.
+# You can get extension of enabled extension by name or by python module name:
+ext_id = manager.get_enabled_extension_id("omni.kit.window.script_editor")
+print(ext_id)
+ext_id = manager.get_extension_id_by_module("omni.kit.window.script_editor")
+print(ext_id)
+
+# There are few ways to get fs path to extension:
+print(manager.get_extension_path(ext_id))
+print(manager.get_extension_dict(ext_id)["path"])
+print(manager.get_extension_path_by_module("omni.kit.window.script_editor"))
+### Instruction:
+Extension Intercommunication，Controlling Extension
+### Input:
+### Output:
+#Your extension can communicate with an instance of another loaded extension if they provide the proper mechanism. In this example, the controlling extension will set a flag in the helper extension to tell it to start its helping functionality, and whether it should run with or without a UI
+import omni.docs.helper
+
+class ControllerExtension(omni.ext.IExt):
+
+   def on_startup(self, ext_id):
+      helper_inst = omni.docs.helper.get_instance()
+      if helper_inst:
+         # tell helper to run headless (no ui)
+         helper_inst.b_headless = True
+         helper_inst.b_start_helping = True
+### Instruction:
+Extension Intercommunication，Helper Extension
+### Input:
+### Output:
+#Your extension can communicate with an instance of another loaded extension if they provide the proper mechanism. In this example, the controlling extension will set a flag in the helper extension to tell it to start its helping functionality, and whether it should run with or without a UI
+# give parent extension the ability to tell us
+# to start helping and whether to run with or without UI
+_extension_instance = None
+def get_instance():
+   return _extension_instance
+
+class HelperExtension(omni.ext.IExt):
+
+   def on_startup(self, ext_id):
+
+      global _extension_instance
+      _extension_instance = self
+### Instruction:
+Input Devices，Subscribe to Keyboard Events
+### Input:
+### Output:
+import omni.appwindow
+from carb.input
+
+app_window = omni.appwindow.get_default_app_window()
+self.keyboard = app_window.get_keyboard()
+input = carb.input.acquire_input_interface()
+self.keyboard_sub_id = input.subscribe_to_keyboard_events(self.keyboard, self.on_keyboard_input)
+### Instruction:
+Input Devices，Handle Keyboard Events
+### Input:
+### Output:
+from carb.input import KeyboardEventType
+
+def on_keyboard_input(self, e):
+    if e.input == carb.input.KeyboardInput.W:
+        if e.type == KeyboardEventType.KEY_PRESS or e.type == KeyboardEventType.KEY_REPEAT:
+            self.handle_key_pressed(e.input)
+        elif e.type == KeyboardEventType.KEY_RELEASE:
+            self.handle_key_released(e.input)
+### Instruction:
+Input Devices，Unsubscribe the Keyboard Event Handler
+### Input:
+### Output:
+#When you are done using it you should unsubscribe from the event handling using one of these two methods.
+input = carb.input.acquire_input_interface()
+keyboard = app_window.get_keyboard()
+input.unsubscribe_to_keyboard_events(keyboard, self.keyboard_sub_id)
+
+# or just...
+self.keyboard_sub_id = None
+### Instruction:
+Input Devices，Reading the Mouse State
+### Input:
+### Output:
+#Mouse input currently doesn’t support event callbacks, therefore you must poll for the values. The below code demonstrates printing the values of each action state. These states will only be non-zero when you are performing an action such as pressing a button, moving the mouse or using the scroll wheel. If this is put in an update loop it will only print when there is an action taking place.
+import omni
+import carb
+
+self.input = carb.input.acquire_input_interface()
+self.mouse = omni.appwindow.get_default_app_window().get_mouse()
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.LEFT_BUTTON)
+if val: print(f"LEFT_BUTTON : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.MIDDLE_BUTTON)
+if val: print(f"MIDDLE_BUTTON : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.RIGHT_BUTTON)
+if val: print(f"RIGHT_BUTTON : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.FORWARD_BUTTON)
+if val: print(f"FORWARD_BUTTON : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.SCROLL_RIGHT)
+if val: print(f"SCROLL_RIGHT : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.SCROLL_LEFT)
+if val: print(f"SCROLL_LEFT : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.SCROLL_UP)
+if val: print(f"SCROLL_UP : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.SCROLL_DOWN)
+if val: print(f"SCROLL_DOWN : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.MOVE_RIGHT)
+if val: print(f"MOVE_RIGHT : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.MOVE_LEFT)
+if val: print(f"MOVE_LEFT : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.MOVE_UP)
+if val: print(f"MOVE_UP : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.MOVE_DOWN)
+if val: print(f"MOVE_DOWN : {val}")
+
+val = self.input.get_mouse_value(self.mouse, carb.input.MouseInput.COUNT)
+if val: print(f"COUNT : {val}")
+### Instruction:
+Input Devices，Handling Gamepad Events for a vehicle
+### Input:
+### Output:
+def on_gamepad_event(self, event: carb.input.GamepadEvent):
+
+    # D-pad Up for accelerating
+    if event.input == GamepadInput.DPAD_UP:
+        if event.value > 0.5: self.throttle = 1
+        else: self.throttle = 0
+
+    # D-pad Down for braking
+    elif event.input == GamepadInput.DPAD_DOWN:
+        if event.value > 0.5: self.brakes = 1
+        else: self.brakes = 0
+
+    cur_val = event.value
+    absval = abs(event.value)
+
+    # Ignore 0 since it signifies the movement  of the stick has stopped,
+    # but doesn't mean it's at center...could be being held steady
+    if absval == 0:
+        return
+    if absval < 0.001:
+        cur_val = 0
+
+    # Use right stick for steering
+    if event.input == GamepadInput.RIGHT_STICK_RIGHT:
+        self.steering = cur_val
+    elif event.input == GamepadInput.RIGHT_STICK_LEFT:
+        self.steering = -1 * cur_val
+### Instruction:
+Input Devices，Unsubscribing the Gamepad Event Handler
+### Input:
+### Output:
+self.input.unsubscribe_to_gamepad_events(self.gamepad, self.gp_event_sub)
+### Instruction:
+The Physics Simulation Interface (PSI)，Getting cached prims
+### Input:
+### Output:
+#For performance reasons, the PSI often uses cached versions of a prim and the stage. prim_id is an ID to the cached prim with the path in the string var my_prim_path.
+from pxr import PhysicsSchemaTools, UsdUtils
+
+prim_id = PhysicsSchemaTools.sdfPathToInt(my_prim_path)
+stage_cache = UsdUtils.StageCache.Get()
+stage_id = stage_cache.GetId(self._stage).ToLongInt()
+### Instruction:
+The Physics Simulation Interface (PSI)，Apply a Force to a Rigid Body
+### Input:
+### Output:
+#Apply a force to our prim using its cached id prim_id
+from omni.physx import get_physx_simulation_interface
+
+force = carb._carb.Float3(0.0, up_force_scalar, 0)
+
+psi = get_physx_simulation_interface()
+psi.apply_force_at_pos(stage_id, prim_id, force, carb._carb.Float3(location))
+### Instruction:
+The Physics Simulation Interface (PSI)，Apply a Torque to a Rigid Body
+### Input:
+### Output:
+torque_roll = carb._carb.Float3(foward_vect * roll_torque_scalar)
+
+psi = get_physx_simulation_interface()
+psi.apply_torque(stage_id, prim_id, torque_roll)
+### Instruction:
+Rigid Body Collisions，Contact Reporter (Collisions)
+### Input:
+### Output:
+#Subscribe to Contact Reports by registering our callback function
+from pxr import PhysicsSchemaTools, PhysxSchema, UsdPhysics
+
+my_stage = usd_context.get_stage()
+my_prim = my_stage.GetPrimAtPath(my_prim_path)
+
+contactReportAPI = PhysxSchema.PhysxContactReportAPI.Apply(my_prim)
+contact_report_sub = get_physx_simulation_interface().subscribe_contact_report_events(self.on_contact_report_event)
+### Instruction:
+Rigid Body Collisions，The callback to handle Contact Report events
+### Input:
+### Output:
+from pxr import PhysicsSchemaTools
+
+def on_contact_report_event(self, contact_headers, contact_data):
+
+    for contact_header in contact_headers:
+        # instigator
+        act0_path = str(PhysicsSchemaTools.intToSdfPath(contact_header.actor0))
+        # recipient
+        act1_path = str(PhysicsSchemaTools.intToSdfPath(contact_header.actor1))
+        # the specific collision mesh that belongs to the Rigid Body
+        cur_collider = str(PhysicsSchemaTools.intToSdfPath(contact_header.collider0))
+
+        # iterate over all contacts
+        contact_data_offset = contact_header.contact_data_offset
+        num_contact_data = contact_header.num_contact_data
+        for index in range(contact_data_offset, contact_data_offset + num_contact_data, 1):
+            cur_contact = contact_data[index]
+
+            # find the magnitude of the impulse
+            cur_impulse =  cur_contact.impulse[0] * cur_contact.impulse[0]
+            cur_impulse += cur_contact.impulse[1] * cur_contact.impulse[1]
+            cur_impulse += cur_contact.impulse[2] * cur_contact.impulse[2]
+            cur_impulse = math.sqrt(cur_impulse)
+### Instruction:
+Trigger Volumes，Crate a Trigger
+### Input:
+### Output:
+#Setup the trigger using the PhysxTriggerAPI USD schema.
+from pxr import PhysicsSchemaTools, PhysxSchema, UsdPhysics
+
+# optional, just in case the prim doesn't have a collision attribute already assigned
+UsdPhysics.CollisionAPI.Apply(trigger_prim)
+PhysxSchema.PhysxTriggerAPI.Apply(trigger_prim)
+self.triggerStateAPI = PhysxSchema.PhysxTriggerStateAPI.Apply(trigger_prim)
+### Instruction:
+Trigger Volumes，Detect a Collision
+### Input:
+### Output:
+#Trigger Volumes don’t use python event callbacks, so instead we poll the trigger state per frame.
+from pxr import PhysicsSchemaTools, PhysxSchema, UsdPhysics
+
+def physics_update(self, e: carb.events.IEvent):
+
+    triggerColliders = self.triggerStateAPI.GetTriggeredCollisionsRel().GetTargets()
+    if len(triggerColliders) > 0:
+        for collision in triggerColliders:
+            print(f"Prim path: {collision} : is touching our Trigger")
+### Instruction:
+Vehicles
+### Input:
+### Output:
+Vehicle physics are provided by the omni.physx.vehicle extension. This Extension provides tools for creating vehicles and implementing vehicle simulations that include tire, engine, clutch, transmission and suspension models.
+### Instruction:
+Example Vehicle Code
+### Input:
+### Output:
+Telemetry data lets you read the results of the physics simulation for the tires, transmission, drivetrain, suspension and engine. You can control the vehicle using its Controller Input attributes and you can also customize many other properties of the vehicle by modifying other attributes.
+### Instruction:
+Physics and USD Schemas
+### Input:
+### Output:
+A schema developed by NVIDIA in collaboration with Pixar and Apple standardizing the representation of mass distribution, collision behavior and other data necessary for rigid-body dynamics.
+### Instruction:
+Physics Demo Scenes
+### Input:
+### Output:
+Many python examples using our cutting edge physics technology are demonstrated in the Physics Demo Scenes that can be found in Omniverse USD Composer. To open it go to the Window menu, Simulation sub-menu and then select Demo Scenes in the Physics section.
+### Instruction:
+Install a New Python Package from PyPI
+### Input:
+### Output:
+#You can use the omni.kit.pipapi extension to install external Python packages that you would like to use within Kit or any Omniverse app. This snippet is useful if you just want to install a Python package for yourself or for scripting purposes. omni.kit.pipapi.install wraps pip install calls and reroutes package installation into a user specified environment folder which is added to sys.path.
+
+If you are creating an extension that depends on a Python package, then you should use the extension config to include the Python package requirement so that it is installed when the extension is enabled.
+# omni.kit.pipapi extension is required
+import omni.kit.pipapi
+
+omni.kit.pipapi.install(
+    package="semver",
+    version="2.13.0",
+    module="semver", # sometimes module is different from package name, module is used for import check
+    ignore_import_check=False,
+    ignore_cache=False,
+    use_online_index=True,
+    surpress_output=False,
+    extra_args=[]
+)
+
+# use the newly installed package
+import semver
+ver = semver.VersionInfo.parse('1.2.3-pre.2+build.4')
+print(ver)
+### Instruction:
+Write to Log，logging Library
+### Input:
+### Output:
+#Logging is important for recording parts of your python’s execution and for debugging purposes. For Python, it’s recommended that you use the logging standard library which is redirected to Carbonite SDK. The advantage with this method is that it follows Python standard practice and it also captures file path and location.
+import logging
+logger = logging.getLogger(__name__)
+logger.info("123")
+logger.warning("456")
+logger.error("789")
+### Instruction:
+Write to Log，carb Library
+### Input:
+### Output:
+#While logging is recommended, there are also bindings for logging with carb and you may find some extensions using that.
+# Carbonite logger can used both for Python and C++:
+import carb
+carb.log_info("123")
+carb.log_warn("456")
+carb.log_error("789")
+### Instruction:
+Write to Log，logging Library
+### Input:
+### Output:
+#Logging is important for recording parts of your python’s execution and for debugging purposes. For Python, it’s recommended that you use the logging standard library which is redirected to Carbonite SDK. The advantage with this method is that it follows Python standard practice and it also captures file path and location.
+import logging
+logger = logging.getLogger(__name__)
+logger.info("123")
+logger.warning("456")
+logger.error("789")
+### Instruction:
+Write to Log，carb Library
+### Input:
+### Output:
+#While logging is recommended, there are also bindings for logging with carb and you may find some extensions using that.
+# Carbonite logger can used both for Python and C++:
+import carb
+carb.log_info("123")
+carb.log_warn("456")
+carb.log_error("789")
+### Instruction:
+Write to Log，logging Library
+### Input:
+### Output:
+#While logging is recommended, there are also bindings for logging with carb and you may find some extensions using that.
+#Logging is important for recording parts of your python’s execution and for debugging purposes. For Python, it’s recommended that you use the logging standard library which is redirected to Carbonite SDK. The advantage with this method is that it follows Python standard practice and it also captures file path and location.
+import logging
+logger = logging.getLogger(__name__)
+logger.info("123")
+logger.warning("456")
+logger.error("789")
+### Instruction:
+Write to Log，carb Library
+### Input:
+### Output:
+#While logging is recommended, there are also bindings for logging with carb and you may find some extensions using that.
+# Carbonite logger can used both for Python and C++:
+import carb
+carb.log_info("123")
+carb.log_warn("456")
+carb.log_error("789")
+### Instruction:
+Services，Basic Service
+### Input:
+### Output:
+#Here are some code examples for a Basic Service, Authorization, Metrics and Database Facilities and Transports
+
+Go here for a more detailed look into Services: getting_started
+from omni.services.core import main
+
+def hello_world():
+    return "Hello World!"
+
+main.register_endpoint("get", "/hello-world", hello_world)
+### Instruction:
+Basic Service
+### Input:
+### Output:
+#That is all there is needed to write a service. To run this with Omniverse Kit and an HTTP transport:
+./kit \
+--exec hello_world.py \
+--enable omni.services.core \
+--enable omni.services.transport.server.http \
+--/exts/omni.kit.registry.nucleus/registries/0/name=kit/services \
+--/exts/omni.kit.registry.nucleus/registries/0/url=https://dw290v42wisod.cloudfront.net/exts/kit/services
+### Instruction:
+Facilities，Authorization Facility
+### Input:
+### Output:
+#import omni.ext
+
+from omni.services.core import main
+from omni.services.security.auth import apikey
+
+from .services.sample import router
+
+class SampleAuthorizationFacilityExtension(omni.ext.IExt):
+    """Sample Extension illustrating usage of the Authorization Facility."""
+
+    def on_startup(self) -> None:
+        main.register_router(router, prefix="/sample-auth", tags=["sample"], dependencies=[apikey.OmniApiKeyHeader()])
+
+    def on_shutdown(self) -> None:
+        main.deregister_router(router=router, prefix="/sample-auth")
+### Instruction:
+Facilities，Authorization Facility
+### Input:
+### Output:
+#By default this will just check for the presence of X-API-KEY in the headers, but OmniApiKeyHeader can be further customized with functions:
+async def validate(api_key: str) -> None:
+    if api_key != "foo":
+        raise Exception("Invalid API key.")
+
+main.register_endpoint(
+    router,
+    prefix="/sample-auth",
+    tags=["sample"],
+    dependencies=[apikey.OmniApiKeyHeader(check_functions=[validate])],
+)
+### Instruction:
+Facilities，Authorization Facility
+### Input:
+### Output:
+#It can also be configured via settings. These can go into either in the extensions.toml, an application’s .kit file or via the command-line:
+[settings]
+exts."omni.services.security.auth.apikey".auth_function=["omni.services.security.auth.apikey.auth_functions.validate_from_settings_list"]
+### Instruction:
+Facilities，Database Facility
+### Input:
+### Output:
+# [...]
+
+[settings.exts."my.extension.name".dbs.database-handle]
+connection_string = "mysql:///host.name"
+min_size = 4
+max_size = 10
+### Instruction:
+Facilities，Database Facility
+### Input:
+### Output:
+#Any additional arguments can also be supplied as querystring arguments to the connection string. For example, the following is functionally equivalent to the settings above:
+# [...]
+
+[settings.exts."my.extension.name".dbs.database-handle]
+connection_string = "mysql:///host.name?min_size=4&max_size=10"
+### Instruction:
+Database Facility
+### Input:
+### Output:
+#Once provided, a connection to a database can be obtained by referring to its handle, provided as key to the dbs property of the Extension settings. For example, using the configuration sample provided above:
+database_facility = DatabaseManagerFacility("my.extension.name")
+async with database_facility.get("database-handle") as db:
+    # Create a table:
+    query = "CREATE TABLE IF NOT EXISTS HighScores (id INTEGER PRIMARY KEY, name VARCHAR(100), score INTEGER)"
+    await db.execute(query=query)
+
+    # Insert some data:
+    query = "INSERT INTO HighScores(name, score) VALUES (:name, :score)"
+    values = [
+        {"name": "Daisy", "score": 92},
+        {"name": "Neil", "score": 87},
+        {"name": "Carol", "score": 43},
+    ]
+    await database.execute_many(query=query, values=values)
+
+    # Execute a database query:
+    query = "SELECT * FROM HighScores"
+    rows = await database.fetch_all(query=query)
+    print("High scores:", rows)
+### Instruction:
+Metrics Facility
+### Input:
+### Output:
+#Configuration: The Metrics Facility can be accessed from a Kit Service by first registering the Facility’s instance on the Service’s router:
+import omni.ext
+
+from omni.services.core import main
+from omni.services.facilities.monitoring.metrics.facilities import MetricsFacility
+from .services.sample import router
+
+
+class SampleMetricsFacilityExtension(omni.ext.IExt):
+    """Sample Extension illustrating usage of the Progress Facility."""
+
+    def on_startup(self) -> None:
+        router.register_facility(name="metrics", facility_inst=MetricsFacility("sample"))
+        main.register_router(router=router, prefix="/sample-progress", tags=["example"])
+
+    def on_shutdown(self) -> None:
+        main.deregister_router(router=router, prefix="/sample-progress")
+### Instruction:
+Metrics Facility
+### Input:
+### Output:
+#Once configured, the Metrics Facility then becomes available to the Service’s endpoints via dependency injection:
+from omni.services.core import routers
+from omni.services.facilities.monitoring.progress.facilities import MetricsFacility
+
+router = routers.ServiceAPIRouter()
+
+
+@router.post("/sample-endpoint")
+async def sample(
+    metrics_facility: MetricsFacility = router.get_facility("metrics"),
+) -> Dict:
+    frame_count = metrics_facility.counter(
+        name="processed_frames",
+        documentation="Number of frames processed for a given USD stage",
+        labelnames=("stage", "agent", "camera"),
+        unit="frames",
+    )
+    process_time = metrics_facility.summaries(
+        name="process_time",
+        documentation="Time taken to process a frame",
+        labelnames=("stage", "agent", "camera"),
+    )
+
+    # [...]
+
+    for frame in frame_range:
+        with process_time.labels(stage=stage_name, agent=agent, camera=camera).time():
+            await _process_next_frame()
+        frame_count.labels(stage=stage_name, agent=agent, camera=camera).inc()
+
+    return {"success": True}
+### Instruction:
+Metrics Facility
+### Input:
+### Output:
+#For a service that is “always on”, it is then possible to scrape the metrics on the /metrics endpoint by default. To set and use a specific job name, use the following setting:
+[settings]
+exts."services.monitoring.metrics".job_name = "sample-service"
+### Instruction:
+Metrics Facility
+### Input:
+### Output:
+#For services that shutdown after each request, for example in a “Function as a service” type set up, it is also possible to push the metrics periodically to a pushgateway. This can be configured in the settings using the following settings:
+[settings]
+exts."services.monitoring.metrics".push_metrics = true
+exts."services.monitoring.metrics".push_gateway = "http://localhost:9091"
+exts."services.monitoring.metrics".push_interval = 10
+### Instruction:
+Transports 
+### Input:
+### Output:
+Transports allow different protocols and communication channels to be used with the Omniverse microservices stack.
+### Instruction:
+Get the Value of a Setting
+### Input:
+### Output:
+#You can interact with app, extension, and user settings using the ISettings interface from the carb.settings module. This snippet shows how to get the value of an existing setting.
+import carb.settings
+
+settings = carb.settings.get_settings()
+
+# get a string
+print(settings.get("/log/file"))
+
+# get an array (tuple)
+print(settings.get("/app/exts/folders"))
+
+# get an array element syntax:
+print(settings.get("/app/exts/folders/0"))
+
+# get a whole dictionary
+exts = settings.get("/app/exts")
+print(exts)
+print(exts["folders"])
+
+# get `None` if doesn't exist
+print(settings.get("/app/DOES_NOT_EXIST_1111"))
+### Instruction:
+Set the Value of a Persistent Setting
+### Input:
+### Output:
+#You can interact with app, extension, and user settings using the ISettings interface from the carb.settings module. Persistent settings are saved between app sessions. This means that a user can close the app and retrieve the same settings when the app is relaunched. You can identify persistent settings because their key will start with /persistent. This snippet shows how to set the value of a new or existing persistent setting.
+import carb.settings
+
+settings = carb.settings.get_settings()
+
+# all settings stored under "/persistent" saved between sessions
+key = "/persistent/exts/your.ext.name/test/value"
+print("{}: {}".format(key, settings.get(key)))
+settings.set(key, "string from previous session")
+
+# Below is a setting with location of a file where persistent settings are stored.
+# To reset settings: delete it or run kit with `--reset-user`
+print("persistent settings are stored in: {}".format(settings.get("/app/userConfigPath")))
+### Instruction:
+Subscribe to Setting Changes
+### Input:
+### Output:
+#The omni.kit.app extension contains the SettingChangeSubscription class that allows you to subscribe a callback for when a setting value changes. This is useful for when you want to allow other parts of the app to interactively change the behavior of your extension. This snippet shows how to subscribe to settings value changes and provide a callback function to execute code whenever a setting changes.
+import carb.settings
+import omni.kit.app
+
+settings = carb.settings.get_settings()
+
+def on_change(value, change_type: carb.settings.ChangeEventType):
+    print(value, change_type)
+
+# subscribe to value changes, returned object is subscription holder. To unsubscribe - destroy it.
+subscription1 = omni.kit.app.SettingChangeSubscription("/exts/your.ext.name/test/test/value", on_change)
+
+settings.set("/exts/your.ext.name/test/test/value", 23)
+settings.set("/exts/your.ext.name/test/test/value", "fall")
+settings.set("/exts/your.ext.name/test/test/value", None)
+settings.set("/exts/your.ext.name/test/test/value", 89)
+
+# release the subscription reference to stop receiving callbacks.
+subscription1 = None
+# no more notifications
+settings.set("/exts/your.ext.name/test/test/value", 100)
+### Instruction:
+Create a Window
+### Input:
+### Output:
+#The following code shows how to create a Window. Commonly an extension will create it’s UI within a Window in its on_startup. Once you’ve created a window you use its frame to add widgets to.
+def on_startup(self, ext_id):
+    my_window = ui.Window("My Extension's Window", width=400, height=400)
+
+    with my_window.frame:
+        ui.Label("My Window with this Label")
+### Instruction:
+Keyword Arguments，flags 
+### Input:
+### Output:
+This property set the Flags for the Window.
+### Instruction:
+Keyword Arguments，visible
+### Input:
+### Output:
+This property holds whether the window is visible.
+### Instruction:
+Keyword Arguments，title
+### Input:
+### Output:
+This property holds the window’s title.
+### Instruction:
+Keyword Arguments，padding_x
+### Input:
+### Output:
+This property set the padding to the frame on the X axis.
+### Instruction:
+Keyword Arguments，padding_y
+### Input:
+### Output:
+This property set the padding to the frame on the Y axis.
+### Instruction:
+Keyword Arguments，width
+### Input:
+### Output:
+This property holds the window Width.
+### Instruction:
+Keyword Arguments，height
+### Input:
+### Output:
+This property holds the window Height.
+### Instruction:
+Keyword Arguments，position_x
+### Input:
+### Output:
+This property set/get the position of the window in the X Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position.
+### Instruction:
+Keyword Arguments，position_y
+### Input:
+### Output:
+This property set/get the position of the window in the Y Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position.
+### Instruction:
+Keyword Arguments，auto_resize
+### Input:
+### Output:
+setup the window to resize automatically based on its content
+### Instruction:
+Keyword Arguments，noTabBar
+### Input:
+### Output:
+setup the visibility of the TabBar Handle, this is the small triangle at the corner of the view If it is not shown then it is not possible to undock that window and it need to be closed/moved programatically
+### Instruction:
+Keyword Arguments，width_changed_fn
+### Input:
+### Output:
+This property holds the window Width.
+### Instruction:
+Keyword Arguments，height_changed_fn 
+### Input:
+### Output:
+This property holds the window Height.
+### Instruction:
+Keyword Arguments，visibility_changed_fn
+### Input:
+### Output:
+This property holds whether the window is visible.
+### Instruction:
+Properies / Methods，def call_key_pressed_fn(self, arg0: int, arg1: int, arg2: bool) -> None
+### Input:
+### Output:
+Sets the function that will be called when the user presses the keyboard key on the focused window.
+### Instruction:
+Properies / Methods，def deferred_dock_in(self, target_window: str, active_window: DockPolicy = DockPolicy.DO_NOTHING) -> None
+### Input:
+### Output:
+Deferred docking. We need it when we want to dock windows before they were actually created. It’s helpful when extension initialization, before any window is created. ### Arguments: targetWindowTitle : Dock to window with this title when it appears. activeWindow : Make target or this window active when docked.
+### Instruction:
+Properies / Methods，def destroy(self) -> None
+### Input:
+### Output:
+Removes all the callbacks and circular references.
+### Instruction:
+Properies / Methods，def dock_in_window(self, title: str, dockPosition: DockPosition, ratio: float = 0.5) -> bool
+### Input:
+### Output:
+place the window in a specific docking position based on a target window name. We will find the target window dock node and insert this window in it, either by spliting on ratio or on top if the window is not found when false is return, otherwise true
+### Instruction:
+Properies / Methods，def get_window_callback(*args, **kwargs) -> typing.Any
+### Input:
+### Output:
+Returns window set draw callback pointer for the given UI window.
+### Instruction:
+Properies / Methods，def has_key_pressed_fn(self) -> bool
+### Input:
+### Output:
+Sets the function that will be called when the user presses the keyboard key on the focused window.
+### Instruction:
+Properies / Methods，def move_to_app_window(self, arg0: omni.appwindow._appwindow.IAppWindow) -> None
+### Input:
+### Output:
+Moves the window to the specific OS window.
+### Instruction:
+Properies / Methods，def notify_app_window_change(self, arg0: omni.appwindow._appwindow.IAppWindow) -> None
+### Input:
+### Output:
+Notifies the window that window set has changed.
+### Instruction:
+Properies / Methods，def setPosition(self, x: float, y: float) -> None
+### Input:
+### Output:
+This property set/get the position of the window in both axis calling the property.
+### Instruction:
+Properies / Methods，def set_docked_changed_fn(self, arg0: typing.Callable[[bool], None]) -> None
+### Input:
+### Output:
+Has true if this window is docked. False otherwise. It’s a read-only property.
+### Instruction:
+Properies / Methods，def set_focused_changed_fn(self, arg0: typing.Callable[[bool], None]) -> None
+### Input:
+### Output:
+Read only property that is true when the window is focused.
+### Instruction:
+Properies / Methods，def set_height_changed_fn(self, arg0: typing.Callable[[float], None]) -> None
+### Input:
+### Output:
+This property holds the window Height.
+### Instruction:
+Properies / Methods，def set_key_pressed_fn(self, fn: typing.Callable[[int, int, bool], None]) -> None
+### Input:
+### Output:
+Sets the function that will be called when the user presses the keyboard key on the focused window.
+### Instruction:
+Properies / Methods，def set_position_x_changed_fn(self, arg0: typing.Callable[[float], None]) -> None
+### Input:
+### Output:
+This property set/get the position of the window in the X Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position.
+### Instruction:
+Properies / Methods，def set_position_y_changed_fn(self, arg0: typing.Callable[[float], None]) -> None
+### Input:
+### Output:
+This property set/get the position of the window in the Y Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position.
+### Instruction:
+Properies / Methods，def set_selected_in_dock_changed_fn(self, arg0: typing.Callable[[bool], None]) -> None
+### Input:
+### Output:
+Has true if this window is currently selected in the dock. False otherwise. It’s a read-only property.
+### Instruction:
+Properies / Methods，def set_top_modal(self) -> None
+### Input:
+### Output:
+Brings this window to the top level of modal windows.
+### Instruction:
+Properies / Methods，def set_visibility_changed_fn(self, arg0: typing.Callable[[bool], None]) -> None
+### Input:
+### Output:
+This property holds whether the window is visible.
+### Instruction:
+Properies / Methods，def set_width_changed_fn(self, arg0: typing.Callable[[float], None]) -> None
+### Input:
+### Output:
+This property holds the window Width.
+### Instruction:
+Properies / Methods，def app_window(self) -> omni.appwindow._appwindow.IAppWindow
+### Input:
+### Output:
+type : omni.appwindow._appwindow.IAppWindow
+### Instruction:
+Properies / Methods，def auto_resize(self) -> bool
+### Input:
+### Output:
+setup the window to resize automatically based on its content type : bool
+### Instruction:
+Properies / Methods，def auto_resize(self, arg1: bool) -> None
+### Input:
+### Output:
+setup the window to resize automatically based on its content
+### Instruction:
+Properies / Methods，def detachable(self) -> bool
+### Input:
+### Output:
+If the window is able to be separated from the main application window. type : bool
+### Instruction:
+Properies / Methods，def detachable(self, arg1: bool) -> None
+### Input:
+### Output:
+If the window is able to be separated from the main application window.
+### Instruction:
+Properies / Methods，def docked(self) -> bool
+### Input:
+### Output:
+Has true if this window is docked. False otherwise. It’s a read-only property. type : bool
+### Instruction:
+Properies / Methods，def exclusive_keyboard(self) -> bool
+### Input:
+### Output:
+When true, only the current window will receive keyboard events when it’s focused. It’s useful to override the global key bindings. type : bool
+### Instruction:
+Properies / Methods，def exclusive_keyboard(self, arg1: bool) -> None
+### Input:
+### Output:
+When true, only the current window will receive keyboard events when it’s focused. It’s useful to override the global key bindings.
+### Instruction:
+Properies / Methods，def flags(self) -> int
+### Input:
+### Output:
+This property set the Flags for the Window. type : int
+### Instruction:
+Properies / Methods，def flags(self, arg1: int) -> None
+### Input:
+### Output:
+This property set the Flags for the Window.
+### Instruction:
+Properies / Methods，def focus_policy(self) -> FocusPolicy
+### Input:
+### Output:
+Property that controls how a window becomes focused. type : FocusPolicy
+### Instruction:
+Properies / Methods，def focus_policy(self, arg1: FocusPolicy) -> None
+### Input:
+### Output:
+Property that controls how a window becomes focused.
+### Instruction:
+Properies / Methods，def focused(self) -> bool
+### Input:
+### Output:
+Read only property that is true when the window is focused. type : bool
+### Instruction:
+Properies / Methods，def frame(self) -> Frame 
+### Input:
+### Output:
+The main layout of this window. type : Frame
+### Instruction:
+Properies / Methods，def height(self) -> float
+### Input:
+### Output:
+This property holds the window Height. type : float
+### Instruction:
+Properies / Methods，def height(self, arg1: float) -> None
+### Input:
+### Output:
+This property holds the window Height.
+### Instruction:
+Properies / Methods，def menu_bar(self) -> MenuBar
+### Input:
+### Output:
+type : MenuBar
+### Instruction:
+Properies / Methods，def noTabBar(self) -> bool
+### Input:
+### Output:
+setup the visibility of the TabBar Handle, this is the small triangle at the corner of the view If it is not shown then it is not possible to undock that window and it need to be closed/moved programatically type : bool
+### Instruction:
+Properies / Methods，def noTabBar(self, arg1: bool) -> None
+### Input:
+### Output:
+setup the visibility of the TabBar Handle, this is the small triangle at the corner of the view If it is not shown then it is not possible to undock that window and it need to be closed/moved programatically
+### Instruction:
+Properies / Methods，def padding_x(self) -> float
+### Input:
+### Output:
+This property set the padding to the frame on the X axis. type : float
+### Instruction:
+Properies / Methods，def padding_x(self, arg1: float) -> None
+### Input:
+### Output:
+This property set the padding to the frame on the X axis.
+### Instruction:
+Properies / Methods，def padding_y(self) -> float
+### Input:
+### Output:
+This property set the padding to the frame on the Y axis. type : float
+### Instruction:
+Properies / Methods，def padding_y(self, arg1: float) -> None
+### Input:
+### Output:
+This property set the padding to the frame on the Y axis.
+### Instruction:
+Properies / Methods，def position_x(self) -> float
+### Input:
+### Output:
+This property set/get the position of the window in the X Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position. type : float
+### Instruction:
+Properies / Methods，def position_x(self, arg1: float) -> None
+### Input:
+### Output:
+This property set/get the position of the window in the X Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position.
+### Instruction:
+Properies / Methods，def position_y(self) -> float
+### Input:
+### Output:
+This property set/get the position of the window in the Y Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position. type : float
+### Instruction:
+Properies / Methods，def position_y(self, arg1: float) -> None
+### Input:
+### Output:
+This property set/get the position of the window in the Y Axis. The default is kWindowFloatInvalid because we send the window position to the underlying system only if the position is explicitly set by the user. Otherwise the underlying system decides the position.
+### Instruction:
+Properies / Methods，def selected_in_dock(self) -> bool
+### Input:
+### Output:
+Read only property that is true when the window’s tab is selected in a tab group. type : bool
+### Instruction:
+Properies / Methods，def title(self) -> str
+### Input:
+### Output:
+This property holds the window’s title. type : str
+### Instruction:
+Properies / Methods，def title(self, arg1: str) -> None
+### Input:
+### Output:
+This property holds the window’s title.
+### Instruction:
+Properies / Methods，def visible(self) -> bool
+### Input:
+### Output:
+This property holds whether the window is visible. type : bool
+### Instruction:
+Properies / Methods，def visible(self, arg1: bool) -> None
+### Input:
+### Output:
+This property holds whether the window is visible.
+### Instruction:
+Properies / Methods，def width(self) -> float
+### Input:
+### Output:
+This property holds the window Width. type : float
+### Instruction:
+Properies / Methods，def width(self, arg1: float) -> None
+### Input:
+### Output:
+This property holds the window Width.
+### Instruction:
+Create a Label
+### Input:
+### Output:
+#The following code shows how to create a Label to provide informational text for the user, and then creates another Label that will be modified to inform the user of a current status. In both cases the user doesn’t have the ability to modify the text, but the code does.
+ui.Label("This Label is to provide information to the user.")
+
+# save a reference to this Label so we can modify it as needed
+self.status_label = ui.Label("Idle..", width=25)
+### Instruction:
+Create a Label
+### Input:
+### Output:
+#This function will update the status label’s text to the current status string.
+def update_status(status_string):
+    self.status_label.text = status_string
+### Instruction:
+Create a StringField
+### Input:
+### Output:
+#The following code shows how to create a StringField. A SimpleStringModel is used to store the string that is displayed. The data model can then be read or set anywhere and will automatically be updated in the UI. A callback function is then assigned to the data model to react to the user finishing editing the data.
+self.string_model = ui.SimpleStringModel()
+ui.StringField(model=self.string_model, width=250, height=25)
+self.string_model.as_string = "A StringField is editable text"
+self.val_changed_id = self.string_model.subscribe_end_edit_fn(self.on_end_edit_string)
+### Instruction:
+end_edit_string Callback
+### Input:
+### Output:
+#This is the callback that was assigned to the data model in the previous code. The callback then operates on the data and sets another StringField’s data model to display the length of the string.
+def on_end_edit_string(self, item_model):
+    string_field_val = item_model.as_string
+    str_len = len(string_field_val)
+    self.string_model_result.as_string = "Characters in StringField: " + str(str_len)
+### Instruction:
+SimpleStringModel
+### Input:
+### Output:
+#A very simple value model that holds a single string.
+
+def name(self) -> str:
+### Instruction:
+Create a Button
+### Input:
+### Output:
+#The following code is from newly created extension from a New Extension Template Project. It demonstrates a button that uses a callback to increment the value displayed by the label and another button to reset the value.
+
+A callback function should be provided to handle its pressed event. Like most other UI elements it supports width and height arguments (see kwargs) to specify the size of the Button
+self._count = 0
+self._window = ui.Window("My Window", width=300, height=300)
+with self._window.frame:
+    with ui.VStack():
+        label = ui.Label("")
+        def on_click():
+            self._count += 1
+            label.text = f"count: {self._count}"
+
+        def on_reset():
+            self._count = 0
+            label.text = "empty"
+
+        on_reset()
+        with ui.HStack():
+            ui.Button("Add", clicked_fn=on_click)
+            ui.Button("Reset", clicked_fn=on_reset)
+### Instruction:
+Create a Checkbox (and a StringField)
+### Input:
+### Output:
+#The following code shows how to create a Checkbox. No data model is specified so it will automatically be created by the CheckBox. The CheckBox's model is then assigned to a StringField, so whenever the CheckBox value changes, it is then displayed by the StringField.
+example_cb = ui.CheckBox( width=20 , height=20)
+ui.Spacer(width=30)
+cb_stringfield = ui.StringField(model=example_cb.model, width=80, height=20)
+new_style = {   "font_size" :  24 ,
+                "color"     :  0xFF00b976 }
+cb_stringfield.set_style(new_style)
+### Instruction:
+Create HStacks and VStacks
+### Input:
+### Output:
+#The following code shows how to create nested rows of HStack within a VStack to create a sparse grid.
+stacks_window = ui.Window("Example Stacks Window", width=310, height=530)
+with stacks_window.frame:
+    with ui.VStack():
+        ui.Label("Very Top Label", alignment=ui.Alignment.CENTER)
+
+        with ui.HStack():
+            ui.Button("Top Left", width=100, height=100)
+            ui.Button("Top Center", width=100, height=100)
+            ui.Button("Top Right", width=100, height=100)
+        with ui.HStack():
+            ui.Button("Middle Left", width=100, height=100)
+            ui.Spacer(width=100, height=100)
+            ui.Button("Middle Right", width=100, height=100)
+        with ui.HStack():
+            ui.Button("Bottom Left", width=100, height=100)
+            ui.Button("Bottom Center", width=100, height=100)
+
+        ui.Label("Very Bottom Label", alignment=ui.Alignment.CENTER)
+### Instruction:
+Data Model
+### Input:
+### Output:
+Since an HStack and a VStack are just used for defining the layout of other widgets, there is no data model associated with them.
+### Instruction:
+Spacer
+### Input:
+### Output:
+The Spacer class provides blank space. Normally, it’s used to place other widgets correctly in a layout.
+### Instruction:
+Image
+### Input:
+### Output:
+#An Image widget displays an image.
+
+The source of the image is specified as a URL using the source property. By default, specifying the width and height of the item causes the image to be scaled to that size. This behavior can be changed by setting the fill_mode property, allowing the image to be stretched or scaled instead. The property alignment controls where to align the scaled image.
+# show image in extension's data folder
+ext_manager = omni.kit.app.get_app().get_extension_manager()
+ext_path = ext_manager.get_extension_path(self.ext_id)
+img = ui.Image(width=233, height=52,alignment=ui.Alignment.CENTER)
+img.source_url = ext_path + "/data/main_omniverse.png"
+### Instruction:
+ProgressBar
+### Input:
+### Output:
+#A ProgressBar is a classic widget for showing the progress of an operation. By default a ProgressBar’s range is from 0 to 1.0
+#This example demonstrates creating a ProgressBar and a FloatSlider that share the same SimpleFloatModel. Sharing this DataModel synchronizes these two widgets.
+with ui.VStack():
+
+    # create the shared model
+    float_model = ui.SimpleFloatModel(0, min=0,max=1)
+
+    example_progress = ui.ProgressBar(model=float_model, width=200, height=30)
+    new_style = {"color" : 0xFF00b976}
+    example_progress.set_style(new_style)
+    ui.Spacer(height=10)
+    ui.FloatSlider(float_model, width=200, min=0, max=1, step=0.01)
+### Instruction:
+IntField
+### Input:
+### Output:
+The IntField widget is a one-line text editor with a string model.
+### Instruction:
+IntSlider
+### Input:
+### Output:
+#The slider is the classic widget for controlling a bounded value. It lets the user move a slider handle along a horizontal groove and translates the handle’s position into an integer value within the legal range.
+### Instruction:
+IntSlider，Example:
+### Input:
+### Output:
+#This example creates an IntField, an IntSlider, and a SimpleIntModel. It then uses the same DataModel (SimpleIntModel) for the two UI widgets to link their values.
+
+A callback is set on the SimpleIntModel to be notified when the value has changed. This uses an inherited method from AbstractValueModel. The callback prints out the new value whenever the user has changed either UI widget’s value.
+### Instruction:
+IntSlider，IntField and IntSlider Example
+### Input:
+### Output:
+def test_int_model_ui(self):
+    self.sliders_window = ui.Window("Example sliders_window", width=310, height=100)
+    with self.sliders_window.frame:
+        with ui.VStack(mouse_moved_fn=self.on_vstack_mouse):
+            self.example_intmodel = ui.SimpleIntModel()
+            self.IntSlider_example = ui.IntSlider(min=0,max=100,step=1, width=100)
+            self.IntSlider_example.model = self.example_intmodel
+            self.IntField_example = ui.IntField(width=100, height=30 )
+            self.IntField_example.model = self.example_intmodel
+
+            # subscribe to callback for when the value changes
+            self.example_model_changed_sub = self.example_intmodel.subscribe_value_changed_fn(self.on_example_int_model_changed)
+
+def on_example_int_model_changed(self, model):
+    print(f"model {model} :: CHANGED to: {model.as_int}")
+### Instruction:
+FloatField
+### Input:
+### Output:
+FloatField
+### Instruction:
+FloatSlider
+### Input:
+### Output:
+#The slider is the classic widget for controlling a bounded value. It lets the user move a slider handle along a horizontal groove and translates the handle’s position into a float value within the legal range.
+#This example demonstrates creating a FloatSlider and a ProgressBar that share the same SimpleFloatModel. Sharing of this DataModel synchronizes these two widgets.
+with ui.VStack():
+    float_model = ui.SimpleFloatModel(0, min=0,max=1)
+
+    example_progress = ui.ProgressBar(model=float_model, width=200, height=30)
+    new_style = {"color" : 0xFF00b976}
+    example_progress.set_style(new_style)
+    ui.Spacer(height=10)
+    ui.FloatSlider(float_model, width=200 ,min=0,max=1,step=0.01)
+### Instruction:
+Interactive Widgets (with DataModels
+### Input:
+### Output:
+This is a list of Widgets with DataModels. This means the widget is intended to interact with the user.
+### Instruction:
+CheckBox，class CheckBox(Widget, ValueModelHelper):
+### Input:
+### Output:
+A CheckBox is an option button that can be switched on (checked) or off (unchecked). Checkboxes are typically used to represent features in an application that can be enabled or disabled without affecting others.The checkbox is implemented using the model-view pattern. The model is the central component of this system. It is the application’s dynamic data structure independent of the widget. It directly manages the data, logic, and rules of the checkbox. If the model is not specified, the simple one is created automatically when the object is constructed.
+### Instruction:
+ColorWidget，class ColorWidget(Widget, ItemModelHelper):
+### Input:
+### Output:
+The ColorWidget widget is a button that displays the color from the item model and can open a picker window to change the color.
+### Instruction:
+AbstractItemModel，class AbstractItemModel():
+### Input:
+### Output:
+The central component of the item widget. It is the application’s dynamic data structure, independent of the user interface, and it directly manages the nested data. It follows closely model-view pattern. It’s abstract, and it defines the standard interface to be able to interoperate with the components of the model-view architecture. It is not supposed to be instantiated directly. Instead, the user should subclass it to create a new model.The item model doesn’t return the data itself. Instead, it returns the value model that can contain any data type and supports callbacks. Thus the client of the model can track the changes in both the item model and any value it holds.From any item, the item model can get both the value model and the nested items. Therefore, the model is flexible to represent anything from color to complicated tree-table construction.
+### Instruction:
+ComboBox，class ComboBox(Widget, ItemModelHelper):
+### Input:
+### Output:
+The ComboBox widget is a combined button and a drop-down list.A combo box is a selection widget that displays the current item and can pop up a list of selectable items.The ComboBox is implemented using the model-view pattern. The model is the central component of this system. The root of the item model should contain the index of currently selected items, and the children of the root include all the items of the combo box.
+### Instruction:
+FloatDrag，class FloatDrag(FloatSlider, AbstractSlider, Widget, ValueModelHelper):
+### Input:
+### Output:
+The drag widget that looks like a field but it’s possible to change the value with dragging.
+### Instruction:
+FloatField，class FloatField(AbstractField, Widget, ValueModelHelper):
+### Input:
+### Output:
+The FloatField widget is a one-line text editor with a string model.
+### Instruction:
+FloatSlider，class FloatSlider(AbstractSlider, Widget, ValueModelHelper):
+### Input:
+### Output:
+The slider is the classic widget for controlling a bounded value. It lets the user move a slider handle along a horizontal groove and translates the handle’s position into a float value within the legal range.
+### Instruction:
+IntDrag，class IntDrag(IntSlider, AbstractSlider, Widget, ValueModelHelper):
+### Input:
+### Output:
+The drag widget that looks like a field but it’s possible to change the value with dragging.
+### Instruction:
+IntField，class IntField(AbstractField, Widget, ValueModelHelper):
+### Input:
+### Output:
+The IntField widget is a one-line text editor with a string model.
+### Instruction:
+IntSlider，class IntSlider(AbstractSlider, Widget, ValueModelHelper):
+### Input:
+### Output:
+The slider is the classic widget for controlling a bounded value. It lets the user move a slider handle along a horizontal groove and translates the handle’s position into an integer value within the legal range.
+### Instruction:
+MultiFloatDragField，class MultiFloatDragField(AbstractMultiField, Widget, ItemModelHelper):
+### Input:
+### Output:
+MultiFloatDragField is the widget that has a sub widget (FloatDrag) per model item.It’s handy to use it for multi-component data, like for example, float3 or color.
+### Instruction:
+MultiFloatField，class MultiFloatField(AbstractMultiField, Widget, ItemModelHelper):
+### Input:
+### Output:
+MultiFloatField is the widget that has a sub widget (FloatField) per model item.It’s handy to use it for multi-component data, like for example, float3 or color.
+### Instruction:
+MultiIntDragField，class MultiIntDragField(AbstractMultiField, Widget, ItemModelHelper):
+### Input:
+### Output:
+MultiIntDragField is the widget that has a sub widget (IntDrag) per model item.It’s handy to use it for multi-component data, like for example, int3.
+### Instruction:
+MultiIntField，class MultiIntField(AbstractMultiField, Widget, ItemModelHelper):
+### Input:
+### Output:
+MultiIntField is the widget that has a sub widget (IntField) per model item.It’s handy to use it for multi-component data, like for example, int3.
+### Instruction:
+MultiStringField，class MultiStringField(AbstractMultiField, Widget, ItemModelHelper):
+### Input:
+### Output:
+MultiStringField is the widget that has a sub widget (StringField) per model item.It’s handy to use it for string arrays.
+### Instruction:
+ProgressBar，class ProgressBar(Widget, ValueModelHelper):
+### Input:
+### Output:
+A progressbar is a classic widget for showing the progress of an operation.
+### Instruction:
+RadioCollection，class RadioCollection(ValueModelHelper):
+### Input:
+### Output:
+Radio Collection is a class that groups RadioButtons and coordinates their state.It makes sure that the choice is mutually exclusive, it means when the user selects a radio button, any previously selected radio button in the same collection becomes deselected.
+### Instruction:
+StringField，class StringField(AbstractField, Widget, ValueModelHelper):
+### Input:
+### Output:
+The StringField widget is a one-line text editor with a string model.
+### Instruction:
+ToolButton，class ToolButton(Button, InvisibleButton, Widget, ValueModelHelper):
+### Input:
+### Output:
+TreeView is a widget that presents a hierarchical view of information. Each item can have a number of subitems. An indentation often visualizes this in a list. An item can be expanded to reveal subitems, if any exist, and collapsed to hide subitems.TreeView can be used in file manager applications, where it allows the user to navigate the file system directories. They are also used to present hierarchical data, such as the scene object hierarchy.TreeView uses a model/view pattern to manage the relationship between data and the way it is presented. The separation of functionality gives developers greater flexibility to customize the presentation of items and provides a standard interface to allow a wide range of data sources to be used with other widgets.TreeView is responsible for the presentation of model data to the user and processing user input. To allow some flexibility in the way the data is presented, the creation of the sub-widgets is performed by the delegate. It provides the ability to customize any sub-item of TreeView.
+### Instruction:
+TreeView，class TreeView(Widget, ItemModelHelper):
+### Input:
+### Output:
+TreeView is a widget that presents a hierarchical view of information. Each item can have a number of subitems. An indentation often visualizes this in a list. An item can be expanded to reveal subitems, if any exist, and collapsed to hide subitems.TreeView can be used in file manager applications, where it allows the user to navigate the file system directories. They are also used to present hierarchical data, such as the scene object hierarchy.TreeView uses a model/view pattern to manage the relationship between data and the way it is presented. The separation of functionality gives developers greater flexibility to customize the presentation of items and provides a standard interface to allow a wide range of data sources to be used with other widgets.TreeView is responsible for the presentation of model data to the user and processing user input. To allow some flexibility in the way the data is presented, the creation of the sub-widgets is performed by the delegate. It provides the ability to customize any sub-item of TreeView.
+### Instruction:
+UIntSlider，class UIntSlider(AbstractSlider, Widget, ValueModelHelper): 	
+### Input:
+### Output:
+The slider is the classic widget for controlling a bounded value. It lets the user move a slider handle along a horizontal groove and translates the handle’s position into an integer value within the legal range.The difference with IntSlider is that UIntSlider has unsigned min/max.
+### Instruction:
+Style Your UI
+### Input:
+### Output:
+Widgets can be styled to give your Extension window a unique look.
+### Instruction:
+UI Widget Arguments (kwargs)，width : ui.Length
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+This property holds the width of the widget relative to its parent. Do not use this function to find the width of a screen.
+### Instruction:
+UI Widget Arguments (kwargs)，height : ui.Length
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+This property holds the height of the widget relative to its parent. Do not use this function to find the height of a screen.
+### Instruction:
+UI Widget Arguments (kwargs)，name : str
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+The name of the widget that user can set.
+### Instruction:
+UI Widget Arguments (kwargs)，style_type_name_override : str
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+By default, we use typeName to look up the style. But sometimes it’s necessary to use a custom name. For example, when a widget is a part of another widget. (Label is a part of Button) This property can override the name to use in style.
+### Instruction:
+UI Widget Arguments (kwargs)，identifier : str
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+An optional identifier of the widget we can use to refer to it in queries.
+### Instruction:
+UI Widget Arguments (kwargs)，visible : bool
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+This property holds whether the widget is visible.
+### Instruction:
+UI Widget Arguments (kwargs)，visibleMin : float
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+If the current zoom factor and DPI is less than this value, the widget is not visible.
+### Instruction:
+UI Widget Arguments (kwargs)，visibleMax : float
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+If the current zoom factor and DPI is bigger than this value, the widget is not visible.
+### Instruction:
+UI Widget Arguments (kwargs)，tooltip : str
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Set a basic tooltip for the widget, this will simply be a Label, it will follow the Tooltip style
+### Instruction:
+UI Widget Arguments (kwargs)，tooltip_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Set dynamic tooltip that will be created dynamiclly the first time it is needed. the function is called inside a ui.Frame scope that the widget will be parented correctly.
+### Instruction:
+UI Widget Arguments (kwargs)，tooltip_offset_x : float
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Set the X tooltip offset in points. In a normal state, the tooltip position is linked to the mouse position. If the tooltip offset is non zero, the top left corner of the tooltip is linked to the top left corner of the widget, and this property defines the relative position the tooltip should be shown.
+### Instruction:
+UI Widget Arguments (kwargs)，tooltip_offset_y : float
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Set the Y tooltip offset in points. In a normal state, the tooltip position is linked to the mouse position. If the tooltip offset is non zero, the top left corner of the tooltip is linked to the top left corner of the widget, and this property defines the relative position the tooltip should be shown.
+### Instruction:
+UI Widget Arguments (kwargs)，enabled : bool
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+This property holds whether the widget is enabled. In general an enabled widget handles keyboard and mouse events; a disabled widget does not. And widgets display themselves differently when they are disabled.
+### Instruction:
+UI Widget Arguments (kwargs)，selected : bool
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+This property holds a flag that specifies the widget has to use eSelected state of the style.
+### Instruction:
+UI Widget Arguments (kwargs)，checked : bool
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+This property holds a flag that specifies the widget has to use eChecked state of the style. It’s on the Widget level because the button can have sub-widgets that are also should be checked.
+### Instruction:
+UI Widget Arguments (kwargs)，dragging : bool
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+This property holds if the widget is being dragged.
+### Instruction:
+UI Widget Arguments (kwargs)，opaque_for_mouse_events : bool
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+If the widgets has callback functions it will by default not capture the events if it is the top most widget and setup this option to true, so they don’t get routed to the child widgets either
+### Instruction:
+UI Widget Arguments (kwargs)，skip_draw_when_clipped : bool
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+The flag that specifies if it’s necessary to bypass the whole draw cycle if the bounding box is clipped with a scrolling frame. It’s needed to avoid the limitation of 65535 primitives in a single draw list.
+### Instruction:
+UI Widget Arguments (kwargs)，mouse_moved_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Sets the function that will be called when the user moves the mouse inside the widget. Mouse move events only occur if a mouse button is pressed while the mouse is being moved. void onMouseMoved(float x, float y, int32_t modifier)
+### Instruction:
+UI Widget Arguments (kwargs)，mouse_pressed_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Sets the function that will be called when the user presses the mouse button inside the widget. The function should be like this: void onMousePressed(float x, float y, int32_t button, carb::input::KeyboardModifierFlags modifier) Where ‘button’ is the number of the mouse button pressed. ‘modifier’ is the flag for the keyboard modifier key.
+### Instruction:
+UI Widget Arguments (kwargs)，mouse_released_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Sets the function that will be called when the user releases the mouse button if this button was pressed inside the widget. void onMouseReleased(float x, float y, int32_t button, carb::input::KeyboardModifierFlags modifier)
+### Instruction:
+UI Widget Arguments (kwargs)，mouse_double_clicked_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Sets the function that will be called when the user presses the mouse button twice inside the widget. The function specification is the same as in setMousePressedFn. void onMouseDoubleClicked(float x, float y, int32_t button, carb::input::KeyboardModifierFlags modifier)
+### Instruction:
+UI Widget Arguments (kwargs)，mouse_wheel_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Sets the function that will be called when the user uses mouse wheel on the focused window. The function specification is the same as in setMousePressedFn. void onMouseWheel(float x, float y, carb::input::KeyboardModifierFlags modifier)
+### Instruction:
+UI Widget Arguments (kwargs)，mouse_hovered_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Sets the function that will be called when the user use mouse enter/leave on the focused window. function specification is the same as in setMouseHovedFn. void onMouseHovered(bool hovered)
+### Instruction:
+UI Widget Arguments (kwargs)，drag_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Specify that this Widget is draggable, and set the callback that is attached to the drag operation.
+### Instruction:
+UI Widget Arguments (kwargs)，accept_drop_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Specify that this Widget can accept specific drops and set the callback that is called to check if the drop can be accepted.
+### Instruction:
+UI Widget Arguments (kwargs)，drop_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Specify that this Widget accepts drops and set the callback to the drop operation.
+### Instruction:
+UI Widget Arguments (kwargs)，computed_content_size_changed_fn : Callable
+### Input:
+### Output:
+#Most of the UI widgets have common properties and callbacks that can be set. These are usually for their style and layout with the UI and for handling user actions.
+
+Common Keyword Arguments (kwargs) for setting properties and callbacks
+Called when the size of the widget is changed.
+### Instruction:
+Create an Orthographic Camera，USD Python
+### Input:
+### Output:
+#You can define a new camera on a stage using UsdGeom.Camera. The Camera prim has a projection attribute that can be set to orthographic.
+from pxr import Sdf, Usd, UsdGeom
+
+def create_orthographic_camera(stage: Usd.Stage, prim_path: str="/World/MyOrthoCam") -> UsdGeom.Camera:
+    """Create an orthographic camera
+
+    Args:
+        stage (Usd.Stage): A USD Stage to create the camera on.
+        prim_path (str, optional): The prim path for where to create the camera. Defaults to "/World/MyOrthoCam".
+    """
+    camera_path = Sdf.Path(prim_path)
+    usd_camera = UsdGeom.Camera.Define(stage, camera_path)
+    usd_camera.CreateProjectionAttr().Set(UsdGeom.Tokens.orthographic)
+    return usd_camera
+
+
+
+#############
+# Full Usage
+#############
+cam_path = "/World/MyOrthoCam"
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+root_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(root_prim.GetPrim())
+
+camera = create_orthographic_camera(stage, cam_path)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the camera was created
+prim = camera.GetPrim()
+assert prim.IsValid()
+assert camera.GetPath() == Sdf.Path(cam_path)
+assert prim.GetTypeName() == "Camera"
+projection = camera.GetProjectionAttr().Get()
+assert projection == UsdGeom.Tokens.orthographic
+### Instruction:
+Create an Orthographic Camera
+### Input:
+### Output:
+### Instruction:
+Create an Orthographic Camera，Python Kit Commands
+### Input:
+### Output:
+#The CreatePrimWithDefaultXform command in Kit can create a Camera prim and you can optionally set camera attributes values during creation. You must use the attribute token names as the keys for the attributes dictionary. In Omniverse applications, you can explore the names by hovering over a property label in the Property Window and reading it from the tooltip.
+import omni.kit.commands
+from pxr import UsdGeom
+
+
+def create_orthographic_camera(prim_path: str="/World/MyOrthoCam"):
+    """Create an orthographic camera
+
+    Args:
+        prim_path (str, optional): The prim path where the camera should be created. Defaults to "/World/MyOrthoCam".
+    """
+
+    omni.kit.commands.execute("CreatePrimWithDefaultXform",
+       prim_type="Camera",
+       prim_path="/World/MyOrthoCam",
+       attributes={"projection": UsdGeom.Tokens.orthographic}
+    )
+
+
+#############    
+# Full Usage
+#############
+import omni.usd
+
+# Create an orthographic camera at /World/MyOrthoCam
+path = "/World/MyOrthoCam"
+create_orthographic_camera(path)
+
+# Check that the camera was created
+stage = omni.usd.get_context().get_stage()
+prim = stage.GetPrimAtPath(path)
+assert prim.IsValid() == True
+assert prim.GetTypeName() == "Camera"
+projection = prim.GetAttribute("projection").Get()
+assert projection == UsdGeom.Tokens.orthographic
+### Instruction:
+Create an Orthographic Camera，USDA
+### Input:
+### Output:
+#This is an example USDA result from creating a Camera and setting the projection to orthographic. All other Properties are using the default values from the UsdGeomCamera schema definition.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Camera "MyOrthoCam"
+    {
+        token projection = "orthographic"
+    }
+}
+### Instruction:
+Create a Perspective Camera，USD Python
+### Input:
+### Output:
+#You can define a new camera on a stage using UsdGeom.Camera. The Camera prim has a projection attribute that can be set to perspective.
+#With the USD API, you can use UsdGeom.Camera.CreateProjectionAttr() to create the projection attribute and then set the value with Usd.Attribute.Set().
+
+from pxr import Usd, Sdf, UsdGeom
+
+def create_perspective_camera(stage: Usd.Stage, prim_path: str="/World/MyPerspCam") -> UsdGeom.Camera:
+    camera_path = Sdf.Path(prim_path)
+    usd_camera: UsdGeom.Camera = UsdGeom.Camera.Define(stage, camera_path)
+    usd_camera.CreateProjectionAttr().Set(UsdGeom.Tokens.perspective)
+    return usd_camera
+
+
+#############
+# Full Usage
+#############
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create the perspective camera at /World/MyPerspCam
+cam_path = default_prim.GetPath().AppendPath("MyPerspCam")
+camera = create_perspective_camera(stage, cam_path)
+
+# Export the complete Stage as a string and print it.
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the camera was created
+prim = camera.GetPrim()
+assert prim.IsValid()
+assert camera.GetPath() == Sdf.Path(cam_path)
+assert prim.GetTypeName() == "Camera"
+projection = camera.GetProjectionAttr().Get()
+assert projection == UsdGeom.Tokens.perspective
+### Instruction:
+Create a Perspective Camera，Python Kit Commands
+### Input:
+### Output:
+#You can define a new camera on a stage using UsdGeom.Camera. The Camera prim has a projection attribute that can be set to perspective.
+#The CreatePrimWithDefaultXform command in Kit can create a Camera prim and you can optionally set camera attributes values during creation. You must use the attribute token names as the keys for the attributes dictionary. In Omniverse applications, you can explore the names by hovering over a property label in the Property Window and reading it from the tooltip.
+import omni.kit.commands
+from pxr import UsdGeom
+
+
+def create_perspective_camera(prim_path: str="/World/MyPerspCam"):
+    """Create a perspective camera
+
+    Args:
+        prim_path (str, optional): The prim path where the camera should be created. Defaults to "/World/MyPerspCam".
+    """
+
+    omni.kit.commands.execute("CreatePrimWithDefaultXform",
+       prim_type="Camera",
+       prim_path=prim_path,
+       attributes={
+           "projection": UsdGeom.Tokens.perspective,
+           "focalLength": 35,
+           "horizontalAperture": 20.955,
+           "verticalAperture": 15.2908,
+           "clippingRange": (0.1, 100000)
+       }
+    )
+
+
+#############    
+# Full Usage
+#############
+import omni.usd
+
+
+# Create a perspective camera at /World/MyPerspCam
+path = "/World/MyPerspCam"
+create_perspective_camera(path)
+
+# Check that the camera was created
+stage = omni.usd.get_context().get_stage()
+prim = stage.GetPrimAtPath(path)
+assert prim.IsValid() == True
+assert prim.GetTypeName() == "Camera"
+projection = prim.GetAttribute("projection").Get()
+assert projection == UsdGeom.Tokens.perspective
+### Instruction:
+Create a Perspective Camera，USDA
+### Input:
+### Output:
+#You can define a new camera on a stage using UsdGeom.Camera. The Camera prim has a projection attribute that can be set to perspective.
+#This is an example USDA result from creating a Camera and setting the projection to perspective. All other Properties are using the default values from the UsdGeomCamera schema definition.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Camera "MyPerspCam"
+    {
+        token projection = "perspective"
+    }
+}
+### Instruction:
+Convert to Numpy Array
+### Input:
+### Output:
+#To convert a VtArray to a Numpy Array, simply pass the VtArray object to numpy.array constructor.
+import numpy
+from pxr import Vt
+
+
+def convert_vt_to_np(my_array: Vt.Vec3fArray) -> numpy.ndarray:
+    return numpy.array(my_vec3_array)
+
+
+#############
+# Full Usage
+#############
+
+# Create a Vt.Vec3fArray and convert it to a numpy array
+my_vec3_array = Vt.Vec3fArray([(1,2,3),(4,5,6),(7,8,9)])
+np_array: numpy.ndarray = convert_vt_to_np(my_vec3_array)
+
+# print the numpy array to check the values
+print(np_array)
+
+# check the size and length of the numpy array
+assert np_array.size == 9
+assert len(np_array) == 3
+### Instruction:
+Convert from Numpy Array
+### Input:
+### Output:
+#To convert a Numpy Array to a VtArray, you can use FromNumpy() from the VtArray class you want to convert to.
+import numpy
+from pxr import Vt
+
+
+def convert_np_to_vt(my_array: numpy.ndarray) -> Vt.Vec3fArray:
+    return Vt.Vec3fArray.FromNumpy(my_array)
+
+
+#############
+# Full Usage
+#############
+
+# Create a numpy array and convert it into a Vt.Vec3fArray
+np_array = numpy.array([(1,2,3),(4,5,6),(7,8,9)])
+from_numpy: Vt.Vec3fArray = convert_np_to_vt(np_array)
+
+# Print the Vt.Vec3fArray to check the values
+print(from_numpy)
+
+# Check the length of the numpy array
+assert len(np_array) == 3
+### Instruction:
+Find a Prim by Name，USD Python
+### Input:
+### Output:
+#If you want to find all of the prims of a certain type, you can Traverse the stage and use Usd.Prim.GetName() to compare the name of every prim on the stage with the name you are looking for.
+from typing import List
+from pxr import Usd
+
+
+def find_prims_by_name(stage: Usd.Stage, prim_name: str) -> List[Usd.Prim]:
+    found_prims = [x for x in stage.Traverse() if x.GetName() == prim_name]
+    return found_prims
+
+
+##############
+# Full Usage
+##############
+
+from pxr import UsdGeom, Sdf
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create some shape prims
+UsdGeom.Xform.Define(stage, "/World/Group")
+UsdGeom.Cone.Define(stage, "/World/Foo")
+UsdGeom.Cube.Define(stage, "/World/Group/Foo")
+UsdGeom.Sphere.Define(stage, "/World/Group/Bar")
+
+# find the prims with the name "Foo"
+prims: List[Usd.Prim] = find_prims_by_name(stage, "Foo")
+
+# Print the prims to check the found prims by name.
+print(prims)
+
+# Check the number of prims found and whether the found data is correct.
+assert len(prims) == 2
+assert isinstance(prims[0], Usd.Prim)
+assert prims[0].GetName() == "Foo"
+### Instruction:
+Find All the Prims of a Given Type，USD Python
+### Input:
+### Output:
+#If you want to find all of the prims of a certain type, you can Traverse the stage and use Usd.Prim.IsA() to compare the type of every prim on the stage with the type you are looking for.
+from typing import List, Type
+from pxr import Usd, UsdGeom
+
+
+def find_prims_by_type(stage: Usd.Stage, prim_type: Type[Usd.Typed]) -> List[Usd.Prim]:
+    found_prims = [x for x in stage.Traverse() if x.IsA(prim_type)]
+    return found_prims
+
+
+##############
+# Full Usage
+##############
+
+from pxr import UsdGeom, Sdf
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create some shape prims
+UsdGeom.Xform.Define(stage, "/World/Group")
+UsdGeom.Mesh.Define(stage, "/World/Foo")
+UsdGeom.Mesh.Define(stage, "/World/Group/Bar")
+UsdGeom.Sphere.Define(stage, "/World/Group/Baz")
+
+# find the prims with of type UsdGeom.Mesh
+prims: List[Usd.Prim] = find_prims_by_type(stage, UsdGeom.Mesh)
+
+# Print the mesh prims you found
+print(prims)
+
+# Check the number of prims found and whether the found data is correct.
+assert len(prims) == 2
+prim: Usd.Prim
+for prim in prims:
+    assert isinstance(prim, Usd.Prim)
+    assert prim.GetTypeName() == "Mesh"
+### Instruction:
+Get the Child of a Prim，USD Python
+### Input:
+### Output:
+#If you know the name of the child prim, you can use Usd.Prim.GetChild(). This returns an invalid prim if the child doesn’t exist. You can check if the returned prim exists.
+from pxr import Usd
+
+def get_child_prim(parent_prim, child_name) -> Usd.Prim:
+    child_prim: Usd.Prim = parent_prim.GetChild(child_name)  
+    return child_prim
+
+#############
+# Full Usage
+#############
+
+from pxr import Sdf, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+# Create a Cube prim
+cube: Usd.Prim = UsdGeom.Cube.Define(stage, default_prim.GetPath().AppendPath("Box"))
+
+# Get the child prim of the default prim with the name "Box"
+child_prim = get_child_prim(default_prim, "Box")
+
+# Print the full Stage
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+# Print the path of the child prim you were looking for.
+print(child_prim.GetPath())
+
+# Verify the child and parent relationship
+assert child_prim.GetParent() == default_prim
+assert child_prim.GetPath() == cube.GetPath()
+### Instruction:
+Get the Child of a Prim，USDA
+### Input:
+### Output:
+#An example of hierarchy and traversal within a smaller scope is getting the child of a prim. These snippets show how to get a single child by name or how to iterate through all of the children of a prim.
+#This is an example USDA result to show that the Cube prim is the Child Prim of World.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Xform "Cube"
+    {
+    }
+}
+### Instruction:
+Get the Child of a Prim，USD Python
+### Input:
+### Output:
+#An example of hierarchy and traversal within a smaller scope is getting the child of a prim. These snippets show how to get a single child by name or how to iterate through all of the children of a prim.
+#Another option is to iterate through all of the prim’s children to operate on all the children or query them to find the child you are looking for.
+from pxr import Usd, UsdGeom
+
+def get_first_child_mesh(parent_prim: Usd.Prim) -> Usd.Prim:
+    # Iterates only active, loaded, defined, non-abstract children
+    for child_prim in parent_prim.GetChildren():
+        if child_prim.IsA(UsdGeom.Mesh):
+            return child_prim
+
+def print_all_children_names(parent_prim: Usd.Prim):
+    # Iterates over all children
+    for child_prim in parent_prim.GetAllChildren():
+        print(child_prim.GetName())
+### Instruction:
+Add an Inherit，USD Python
+### Input:
+### Output:
+#An Inherit is a composition arc that enables a prim to contain all of the scene description contained in the base prim it inherits. This enables users to author opinions on the base prim that are broadcast to all the prims that inherit it. The Inherit USD Glossary entry explains the nuances of the composition arc in more detail.
+#This code sample shows how to add an Inherit arc to a prim. A single prim can have multiple Inherits.
+from pxr import Usd
+
+def add_inherit(stage: Usd.Stage, prim: Usd.Prim, class_prim: Usd.Prim):
+    inherits: Usd.Inherits = prim.GetInherits()
+    inherits.AddInherit(class_prim.GetPath())
+
+#############
+# Full Usage
+#############
+
+from pxr import Sdf, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+# The base prim typically uses the "class" Specifier to designate that it
+# is meant to be inherited and skipped in standard stage traversals
+tree_class: Usd.Prim = stage.CreateClassPrim("/_class_Tree")
+tree_prim: Usd.Prim = UsdGeom.Mesh.Define(stage, default_prim.GetPath().AppendPath("TreeA")).GetPrim()
+
+add_inherit(stage, tree_prim, tree_class)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check to see if the inherit was added
+inherits_list = tree_prim.GetInherits().GetAllDirectInherits()
+assert tree_class.GetPath() in inherits_list
+### Instruction:
+Add an Inherit，USA
+### Input:
+### Output:
+#An Inherit is a composition arc that enables a prim to contain all of the scene description contained in the base prim it inherits. This enables users to author opinions on the base prim that are broadcast to all the prims that inherit it. The Inherit USD Glossary entry explains the nuances of the composition arc in more detail.
+#This is an example USDA result adding an Inherit Arc to a prim.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Mesh "TreeA" (
+        prepend inherits = </_class_Tree>
+    )
+    {
+    }
+}
+
+class "_class_Tree"
+{
+}
+### Instruction:
+Add a SubLayer，USD Python
+### Input:
+### Output:
+#A SubLayer is a composition arc used to build LayerStacks. In a LayerStack, the Layer that includes SubLayers has the strongest opinion. From there, the SubLayers are ordered from strongest to weakest starting from top to bottom (or first to last) in the subLayers list. This snippet shows how to create a new Layer and add it as a SubLayer.
+from pxr import Sdf
+
+
+def add_sub_layer(sub_layer_path: str, root_layer) -> Sdf.Layer:
+    sub_layer: Sdf.Layer = Sdf.Layer.CreateNew(sub_layer_path)
+    # You can use standard python list.insert to add the subLayer to any position in the list
+    root_layer.subLayerPaths.append(sub_layer.identifier)
+    return sub_layer
+
+#############
+# Full Usage
+#############
+
+from pxr import Usd
+
+# Get the root layer
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+root_layer: Sdf.Layer = stage.GetRootLayer()
+
+# Add the sub layer to the root layer
+sub_layer = add_sub_layer(r"C:/path/to/sublayer.usd", root_layer)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check to see if the sublayer is loaded 
+loaded_layers = root_layer.GetLoadedLayers()
+assert sub_layer in loaded_layers
+### Instruction:
+Add a SubLayer，Python Kit Commands
+### Input:
+### Output:
+#A SubLayer is a composition arc used to build LayerStacks. In a LayerStack, the Layer that includes SubLayers has the strongest opinion. From there, the SubLayers are ordered from strongest to weakest starting from top to bottom (or first to last) in the subLayers list. This snippet shows how to create a new Layer and add it as a SubLayer.
+import omni.kit.commands
+
+
+omni.kit.commands.execute("CreateSublayer",
+    layer_identifier=stage.GetRootLayer().identifier,
+    # This example prepends to the subLayers list
+    sublayer_position=0,
+    new_layer_path=r"C:/path/to/sublayer.usd",
+    transfer_root_content=False,
+    # When True, it will create the layer file for you too.
+    create_or_insert=True
+)
+### Instruction:
+Create an MDL Material，USD Python
+### Input:
+### Output:
+#If you want to create an MDL material, you can use the CreateMdlMaterialPrimCommand or the USD API to do the same. These snippets show how to create a Material prim and a Shader prim that reads from an MDL file. They also utilizes the sourceAsset:subIdentifier attribute to choose a specific material description from within the MDL file.
+from pxr import Sdf, UsdShade
+
+mtl_path = Sdf.Path("/World/Looks/OmniPBR")
+mtl = UsdShade.Material.Define(stage, mtl_path)
+shader = UsdShade.Shader.Define(stage, mtl_path.AppendPath("Shader"))
+shader.CreateImplementationSourceAttr(UsdShade.Tokens.sourceAsset)
+# MDL shaders should use "mdl" sourceType
+shader.SetSourceAsset("OmniPBR.mdl", "mdl")
+shader.SetSourceAssetSubIdentifier("OmniPBR", "mdl")
+# MDL materials should use "mdl" renderContext
+mtl.CreateSurfaceOutput("mdl").ConnectToSource(shader.ConnectableAPI(), "out")
+mtl.CreateDisplacementOutput("mdl").ConnectToSource(shader.ConnectableAPI(), "out")
+mtl.CreateVolumeOutput("mdl").ConnectToSource(shader.ConnectableAPI(), "out")
+### Instruction:
+Create an MDL Material，Python Kit Commands
+### Input:
+### Output:
+#If you want to create an MDL material, you can use the CreateMdlMaterialPrimCommand or the USD API to do the same. These snippets show how to create a Material prim and a Shader prim that reads from an MDL file. They also utilizes the sourceAsset:subIdentifier attribute to choose a specific material description from within the MDL file.
+import omni.kit.commands
+
+success, result = omni.kit.commands.execute('CreateMdlMaterialPrimCommand',
+    mtl_url='OmniPBR.mdl', # This can be path to local or remote MDL
+    mtl_name='OmniPBR', # sourceAsset:subIdentifier (i.e. the name of the material within the MDL)
+    mtl_path="/World/Looks/OmniPBR" # Prim path for the Material to create.
+)
+### Instruction:
+Create a UsdPreviewSurface Material，USD Python
+### Input:
+### Output:
+#These snippets show how to create a Material prim and a UsdPreviewSurface Shader prim. Optionally, you can also create a UsdUVTexture to read from a texture file and connect it to the UsdPreviewSurface.
+#This version creates just the Material prim and UsdPreviewSurface Shader.
+from pxr import Sdf, UsdShade
+
+mtl_path = Sdf.Path("/World/Looks/PreviewSurface")
+mtl = UsdShade.Material.Define(stage, mtl_path)
+shader = UsdShade.Shader.Define(stage, mtl_path.AppendPath("Shader"))
+shader.CreateIdAttr("UsdPreviewSurface")
+shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set([1.0, 0.0, 0.0])
+shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.5)
+shader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(0.0)
+mtl.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+### Instruction:
+Create a UsdPreviewSurface Material，USD Python
+### Input:
+### Output:
+#These snippets show how to create a Material prim and a UsdPreviewSurface Shader prim. Optionally, you can also create a UsdUVTexture to read from a texture file and connect it to the UsdPreviewSurface.
+#This version also creates UsdUVTexture Shader prim and connects it to the diffuse property of the UsdPreviewSurface.
+from pxr import Sdf, UsdShade
+
+mtl_path = Sdf.Path("/World/Looks/PreviewSurface")
+mtl = UsdShade.Material.Define(stage, mtl_path)
+shader = UsdShade.Shader.Define(stage, mtl_path.AppendPath("Shader"))
+shader.CreateIdAttr("UsdPreviewSurface")
+shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set((1.0, 0.0, 0.0))
+shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.5)
+shader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(0.0)
+
+diffuse_tx = UsdShade.Shader.Define(stage,mtl_path.AppendPath("DiffuseColorTx"))
+diffuse_tx.CreateIdAttr('UsdUVTexture')
+diffuse_tx.CreateInput('file', Sdf.ValueTypeNames.Asset).Set("C:/path/to/texture.png")
+diffuse_tx.CreateOutput('rgb', Sdf.ValueTypeNames.Float3)
+shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).ConnectToSource(diffuse_tx.ConnectableAPI(), 'rgb')
+mtl.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+### Instruction:
+Create a UsdPreviewSurface Material，Python Kit Commands
+### Input:
+### Output:
+#These snippets show how to create a Material prim and a UsdPreviewSurface Shader prim. Optionally, you can also create a UsdUVTexture to read from a texture file and connect it to the UsdPreviewSurface.
+#This version creates just the material prim and UsdPreviewSurface Shader.
+### Instruction:
+Create a UsdPreviewSurface Material，Python Kit Commands
+### Input:
+### Output:
+#These snippets show how to create a Material prim and a UsdPreviewSurface Shader prim. Optionally, you can also create a UsdUVTexture to read from a texture file and connect it to the UsdPreviewSurface.
+#This version also creates UsdUVTexture Shader prims for the diffuse, roughness, metallic, and normal properties and connects them to the UsdPreviewSurface.
+import omni.kit.commands
+
+omni.kit.commands.execute("CreatePreviewSurfaceTextureMaterialPrim",
+    mtl_path="/World/Looks/PreviewSurfaceWithTextures",
+    select_new_prim=True)
+### Instruction:
+Concatenate a Prim Path，USD Python
+### Input:
+### Output:
+#If you want to concatenate two strings to extend a prim path, you can use Sdf.Path to store and manipulate prim and property paths. This is useful for extending a prim path with the name of a new child prim that you plan to create. In this snippet we use Sdf.Path.AppendPath(), but you can learn more about other append methods.
+from pxr import Sdf
+
+def concat_prim_path(prim_path: Sdf.Path, path_to_add: str) -> Sdf.Path:
+    concat_path = prim_path.AppendPath(path_to_add)
+    return concat_path
+
+#############
+# Full Usage
+#############
+
+from pxr import Usd, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+# Concatenate the Paths
+concatenated_prim_path: Sdf.Path = concat_prim_path(default_prim.GetPrimPath(), "Kitchen_set/Props_grp/North_grp/NorthWall_grp/MeasuringSpoon_1")
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+assert concatenated_prim_path.pathString == "/World/Kitchen_set/Props_grp/North_grp/NorthWall_grp/MeasuringSpoon_1"
+### Instruction:
+Concatenate a Property Name with a Prim Path，USD Python
+### Input:
+### Output:
+#If you want to concatenate a property name with a Prim path, you can use Sdf.Path.AppendProperty. In this example, given Sdf.Path("/World/MyMesh") in mesh_prim_path, points_attr_path will contain Sdf.Path("/World/MyMesh.points").
+from pxr import Sdf
+
+def concat_property_with_prim_path(prim_path: Sdf.Path, prop) -> Sdf.Path:
+    prop_path = prim_path.AppendProperty(prop)
+    return prop_path
+
+#############
+# Full Usage
+#############
+
+# e.g., get path to "points" attribute on a mesh prim
+from pxr import UsdGeom, Usd
+
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+mesh_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World/Mesh")).GetPrim()
+
+prop_path: Sdf.Path = concat_property_with_prim_path(mesh_prim.GetPrimPath(), UsdGeom.Tokens.points) #nothing happend so did it get added?
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+assert Sdf.Path.IsValidPathString(prop_path.pathString)
+### Instruction:
+Get the Parent Path for a Prim Path，USD Python
+### Input:
+### Output:
+#If you want have a Prim path and you want to get the Prim path of its parent, you can use Sdf.Path.GetParentPath().
+from pxr import Sdf
+
+def get_parent_path(prim_path: Sdf.Path) -> Sdf.Path:
+    parent_path = prim_path.GetParentPath()
+    return parent_path
+
+#############
+# Full Usage
+#############
+from pxr import Usd, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+cone_prim = UsdGeom.Cone.Define(stage, Sdf.Path("/World/Cone")).GetPrim()
+
+# Given Sdf.Path('/World/Cone') for my_prim_path, parent_path will contain Sdf.Path('/World')
+parent_path = get_parent_path(cone_prim.GetPrimPath())
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+assert parent_path == default_prim.GetPrimPath()
+### Instruction:
+Get the Parent Path for a Prim Path，USDA
+### Input:
+### Output:
+#If you want have a Prim path and you want to get the Prim path of its parent, you can use Sdf.Path.GetParentPath().
+from pxr import Sdf
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Cone "Cone"
+    {
+    }
+}
+### Instruction:
+Check if a Prim Exists，USD Python
+### Input:
+### Output:
+#Certain functions may return a Usd.Prim object, but the Prim may not exist due to an incorrect path or because of changes on the Stage. You can use Usd.Object.IsValid() to check if the Prim is valid or exists.
+from pxr import Usd
+
+
+def check_prim_exists(prim: Usd.Prim) -> bool:
+    if prim.IsValid():
+        return True
+    return False
+
+#############
+# Full Usage
+#############
+from pxr import Sdf, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+# Create one prim and 
+cube: Usd.Prim = UsdGeom.Cube.Define(stage, Sdf.Path("/World/Cube")).GetPrim()
+empty_prim = Usd.Prim()
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check if prims exist
+assert check_prim_exists(default_prim)
+assert check_prim_exists(cube)
+assert not check_prim_exists(empty_prim)
+### Instruction:
+Check if a Prim Exists，USD Python
+### Input:
+### Output:
+#Certain functions may return a Usd.Prim object, but the Prim may not exist due to an incorrect path or because of changes on the Stage. You can use Usd.Object.IsValid() to check if the Prim is valid or exists.
+#Alternatively, Usd.Object overrides the boolean operator so you can check with a simple boolean expression.
+from pxr import Usd
+
+
+def check_prim_exists(prim: Usd.Prim) -> bool:
+    if prim:
+        return True
+    return False
+
+#############
+# Full Usage
+#############
+from pxr import Sdf, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+# Create one prim and 
+cube: Usd.Prim = UsdGeom.Cube.Define(stage, Sdf.Path("/World/Cube")).GetPrim()
+empty_prim = Usd.Prim()
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check if prims exist
+assert check_prim_exists(default_prim)
+assert check_prim_exists(cube)
+assert not check_prim_exists(None)
+### Instruction:
+Get the Currently Selected Prims，Python omni.usd
+### Input:
+### Output:
+#USD does not have a concept of a selection, but in Kit, you can select prims enabling users and extensions to then use manipulators and tools on the selection or perform actions upon the selection. This snippet shows you how you can get the list of currently selected prim paths on the stage.
+import omni.usd
+
+prim_path = "/World/My/Prim"
+ctx = omni.usd.get_context()
+# returns a list of prim path strings
+selection = ctx.get_selection().get_selected_prim_paths()
+### Instruction:
+Get the Currently Selected Prims，usdview
+### Input:
+### Output:
+#USD does not have a concept of a selection, but in Kit, you can select prims enabling users and extensions to then use manipulators and tools on the selection or perform actions upon the selection. This snippet shows you how you can get the list of currently selected prim paths on the stage.
+#usdview Python interpreter has a built-in object called usdviewApi that gives you access to the currently selected prims.
+from typing import List
+from pxr import Usd
+
+prims: List[Usd.Prim] = usdviewApi.selectedPrims
+### Instruction:
+Get a Prim，USD Python
+### Input:
+### Output:
+#Getting a prim on the Stage lets you read and write to their attributes and lets you pass them to APIs.
+#Get a prim by using the prim’s path:
+from typing import Union
+from pxr import Usd, Sdf
+
+def get_prim_by_path(stage: Usd.Stage, prim_path: Union[str, Sdf.Path]) -> Usd.Prim:
+    return stage.GetPrimAtPath(prim_path)
+
+##############
+# Full Usage
+##############
+
+from pxr import UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create some prims
+UsdGeom.Xform.Define(stage, "/World/Group")
+UsdGeom.Cube.Define(stage, "/World/Group/Foo")
+
+# Get a prim using a str object
+group_prim_path = "/World/Group"
+group_prim = get_prim_by_path(stage, group_prim_path)
+# Get a prim using an Sdf.Path object
+foo_prim_path = Sdf.Path("/World/Group/Foo")
+foo_prim = get_prim_by_path(stage, foo_prim_path)
+
+# Print the prim objects that were retrieved 
+print(group_prim)
+print(foo_prim)
+
+# Check that the prims retrieve match the paths provided
+assert group_prim.GetPath() == Sdf.Path(group_prim_path)
+assert foo_prim.GetPath() == foo_prim_path
+### Instruction:
+Select a Prim by Prim Path，Python omni.usd
+### Input:
+### Output:
+#USD does not have a concept of a selection, but in Kit, you can select prims enabling users and extensions to then use manipulators and tools on the selection or perform actions upon the selection. These snippets shows you how you can select one or more prims by their prim paths.
+import omni.usd
+
+prim_path = "/World/My/Prim"
+ctx = omni.usd.get_context()
+# The second arg is unused. Any boolean can be used.
+ctx.get_selection().set_selected_prim_paths([prim_path], True)
+### Instruction:
+Select a Prim by Prim Path，Python Kit Commands
+### Input:
+### Output:
+#USD does not have a concept of a selection, but in Kit, you can select prims enabling users and extensions to then use manipulators and tools on the selection or perform actions upon the selection. These snippets shows you how you can select one or more prims by their prim paths.
+import omni.usd
+import omni.kit.commands
+import omni.usd
+
+prim_path = "/World/My/Prim"
+ctx = omni.usd.get_context()
+old_selection = ctx.get_selection().get_selected_prim_paths()
+
+omni.kit.commands.execute('SelectPrimsCommand',
+    old_selected_paths=old_selection,
+    new_selected_paths=[prim_path],
+    expand_in_stage=True) #DEPRECATED: Used only for backwards compatibility.
+### Instruction:
+Add a Relationship Target，USD Python
+### Input:
+### Output:
+#If you just want to add a target to an existing Relationship, you can use Usd.Relationship.AddTarget() to add a Path to the Relationship’s targets list.
+from pxr import Usd, UsdGeom
+
+# For example, adding a proxy prim target on an Imageable
+proxy_prim_rel: Usd.Relationship = UsdGeom.Imageable(myprim).GetProxyPrimRel()
+proxy_prim_rel.AddTarget("/World/MyProxy")
+### Instruction:
+Check if a Property Exists，USD Python
+### Input:
+### Output:
+#Certain functions may return a Usd.Property object, but the Property may not exist due to an incorrect path or because of changes on the Stage. You can use Usd.Object.IsValid() to check if the Property is valid or exists.
+from pxr import Usd
+
+pts_attr: Usd.Attribute = mesh_prim.GetAttribute("points")
+if pts_attr.IsValid():
+    print("Attribute exists!")
+### Instruction:
+Check if a Property Exists，USD Python
+### Input:
+### Output:
+#Certain functions may return a Usd.Property object, but the Property may not exist due to an incorrect path or because of changes on the Stage. You can use Usd.Object.IsValid() to check if the Property is valid or exists.
+#Alternatively, Usd.Object overrides the boolean operator so you can check with a simple boolean expression.
+from pxr import Usd
+
+pts_attr: Usd.Attribute = mesh_prim.GetAttribute("points")
+if pts_attr:
+    print("Attribute exists!")
+### Instruction:
+Create an Attribute，USD Python
+### Input:
+### Output:
+#Creating an Attribute on a layer ensures that it is concretely defined on the Stage. It will always return a value Usd.Attribute object.
+#With the USD API, you can use Usd.Prim.CreateAttribute() to create attributes on Usd.Prim objects. You can set the value using Usd.Attribute.Set() and query the value using Usd.Attribute.Get()
+from pxr import Gf, Sdf, Usd, UsdGeom
+
+"""
+Find all relevant data types at: https://graphics.pixar.com/usd/release/api/_usd__page__datatypes.html
+"""
+
+
+def create_float_attribute(prim: Usd.Prim, attribute_name: str) -> Usd.Attribute:
+    """Creates attribute for a prim that holds a float.
+    See: https://graphics.pixar.com/usd/release/api/class_usd_prim.html
+    Args:
+        prim (Usd.Prim): A Prim for holding the attribute.
+        attribute_name (str): The name of the attribute to create.
+    Returns:
+        Usd.Attribute: An attribute created at specific prim.
+    """
+    attr: Usd.Attribute = prim.CreateAttribute(attribute_name, Sdf.ValueTypeNames.Float)
+    return attr
+
+
+def create_vector_attribute(prim: Usd.Prim, attribute_name: str) -> Usd.Attribute:
+    """Creates attribute for a prim that holds a vector.
+    See: https://graphics.pixar.com/usd/release/api/class_usd_prim.html
+    Args:
+        prim (Usd.Prim): A Prim for holding the attribute.
+        attribute_name (str): The name of the attribute to create.
+    Returns:
+        Usd.Attribute: An attribute created at specific prim.
+    """
+    attr: Usd.Attribute = prim.CreateAttribute(
+        attribute_name, Sdf.ValueTypeNames.Float3
+    )
+    return attr
+
+
+#############
+# Full Usage
+#############
+
+# Create an in-memory Stage
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+
+# Create a prim named /World (type Xform) and make it the default prim.
+prim_path = "/World"
+xform: UsdGeom.Xform = UsdGeom.Xform.Define(stage, prim_path)
+prim: Usd.Prim = xform.GetPrim()
+stage.SetDefaultPrim(prim)
+
+# Create a float attribute on /World
+float_attr: Usd.Attribute = create_float_attribute(prim, "my_float_attr")
+
+# Create a vector attribute on /World
+vector_attr: Usd.Attribute = create_vector_attribute(prim, "my_vector_attr")
+
+# Set and query values
+print(float_attr.Get())
+float_attr.Set(0.1)
+print(float_attr.Get())
+
+vector_value: Gf.Vec3f = Gf.Vec3f(0.1, 0.2, 0.3)
+print(vector_attr.Get())
+vector_attr.Set(vector_value)
+print(vector_attr.Get())
+
+# Optionally preview the usd
+# print(stage.GetRootLayer().ExportToString())
+### Instruction:
+Check if a Property Exists，Python Kit Commands
+### Input:
+### Output:
+#Creating an Attribute on a layer ensures that it is concretely defined on the Stage. It will always return a value Usd.Attribute object.
+#The CreateUsdAttributeCommand command in Kit can create an Attribute on a prim. The Attribute name and type are required.
+import omni.kit.commands
+import omni.usd
+
+from pxr import Gf, Sdf, Usd, UsdGeom
+
+
+def create_float_attribute(prim: Usd.Prim, attribute_name: str) -> Usd.Attribute:
+    """Creates attribute for a prim that holds a float.
+    See: https://graphics.pixar.com/usd/release/api/class_usd_prim.html
+    See: https://docs.omniverse.nvidia.com/kit/docs/omni.usd/latest/omni.usd.commands/omni.usd.commands.CreateUsdAttributeCommand.html
+    Args:
+        prim (Usd.Prim): A Prim for holding the attribute.
+        attribute_name (str): The name of the attribute to create.
+    Returns:
+        Usd.Attribute: An attribute created at specific prim.
+    """
+    omni.kit.commands.execute(
+        "CreateUsdAttributeCommand",
+        prim=prim,
+        attr_name=attribute_name,
+        attr_type=Sdf.ValueTypeNames.Float,
+    )
+
+    attr: Usd.Attribute = prim.GetAttribute(attribute_name)
+    return attr
+
+
+def create_vector_attribute(prim: Usd.Prim, attribute_name: str) -> Usd.Attribute:
+    """Creates attribute for a prim that holds a vector.
+    See: https://graphics.pixar.com/usd/release/api/class_usd_prim.html
+    See: https://docs.omniverse.nvidia.com/kit/docs/omni.usd/latest/omni.usd.commands/omni.usd.commands.CreateUsdAttributeCommand.html
+    Args:
+        prim (Usd.Prim): A Prim for holding the attribute.
+        attribute_name (str): The name of the attribute to create.
+    Returns:
+        Usd.Attribute: An attribute created at specific prim.
+    """
+    omni.kit.commands.execute(
+        "CreateUsdAttributeCommand",
+        prim=prim,
+        attr_name=attribute_name,
+        attr_type=Sdf.ValueTypeNames.Float3,
+    )
+    attr: Usd.Attribute = prim.GetAttribute(attribute_name)
+    return attr
+
+
+#############
+# Full Usage
+#############
+
+# Get the current stage
+stage: Usd.Stage = omni.usd.get_context().get_stage()
+
+# Get the default prim
+prim: Usd.Prim = stage.GetDefaultPrim()
+
+# Create a float attribute on /World
+float_attr: Usd.Attribute = create_float_attribute(prim, "my_float_attr")
+
+# Create a vector attribute on /World
+vector_attr: Usd.Attribute = create_vector_attribute(prim, "my_vector_attr")
+
+# Set and query values
+print(float_attr.Get())
+float_attr.Set(0.1)
+print(float_attr.Get())
+
+vector_value: Gf.Vec3f = Gf.Vec3f(0.1, 0.2, 0.3)
+print(vector_attr.Get())
+vector_attr.Set(vector_value)
+print(vector_attr.Get())
+
+# Optionally preview the usd
+# print(stage.GetRootLayer().ExportToString())
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#Creating an Attribute on a layer ensures that it is concretely defined on the Stage. It will always return a value Usd.Attribute object.
+#This is an example USDA result from creating an Xform and Cube prim. Where the Cube prim is a child of the Xform and the Xform has it’s own Translation Ops.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    custom float my_float_attr = 0.1
+    custom float3 my_vector_attr = (0.1, 0.2, 0.3)
+}
+### Instruction:
+Create a Relationship，USD Python
+### Input:
+### Output:
+#A Relationship is a type of Usd.Property that points to other Prims, Attributes or Relationships. The Relationship targets are represented by a list of Paths. This code sample shows how to create a Relationship and set some initial targets.
+from pxr import Usd
+
+prim: Usd.Prim = stage.GetPrimAtPath("/World/MyPrim")
+custom_relationship: Usd.Relationship = prim.CreateRelationship("myCustomRelationship")
+# You can also use Usd.Relationship.AddTarget() to add targets to an existing Relationship.
+custom_relationship.SetTargets(["/World/TargetA", "/World/TargetB"])
+### Instruction:
+Get the Value of an Attribute，USD Python
+### Input:
+### Output:
+#Usd.Prim.GetAttribute() returns a Usd.Attribute, but this is not the value for the Attribute. You must call Usd.Attribute.Get() to perform the attribute value resolution resulting in a default value, timesample value or interpolated value for the Attribute.
+from pxr import Usd, Sdf
+
+def get_attribute_value(prim: Usd.Prim, attribute_name: str):
+    """
+    See: https://graphics.pixar.com/usd/release/api/class_usd_attribute.html
+    Args:
+        prim: The prim owner of the attribute.
+        attribute_name: The name of the attribute to retrieve.
+    Return:
+        The value of the attribute, see https://graphics.pixar.com/usd/release/api/_usd__page__datatypes.html
+        for the return types.
+        For example, for `float3`, the return type will be `Gf.Vec3f`.
+    """
+    attr = prim.GetAttribute(attribute_name)
+    return attr.Get()
+### Instruction:
+Check if a Property Exists，USD Python
+### Input:
+### Output:
+#Usd.Prim.GetAttribute() returns a Usd.Attribute, but this is not the value for the Attribute. You must call Usd.Attribute.Get() to perform the attribute value resolution resulting in a default value, timesample value or interpolated value for the Attribute.
+#You can also get the value at a particular time:
+from pxr import Usd, Sdf
+
+def get_attribute_value_at_time(prim: Usd.Prim, attribute_name: str, time_value: float):
+    """
+    See: https://graphics.pixar.com/usd/release/api/class_usd_attribute.html
+    Args:
+        prim: The prim owner of the attribute.
+        attribute_name: The name of the attribute to retrieve.
+        time_value: Get the value authored or interpolated at a particular time.
+    Return:
+        The value of the attribute, see https://graphics.pixar.com/usd/release/api/_usd__page__datatypes.html
+        for the return types.
+        For example, for `float3`, the return type will be `Gf.Vec3f`.
+    """
+    attr = prim.GetAttribute(attribute_name)
+    return attr.Get(time_value)
+### Instruction:
+Get the Targets of a Relationship，USD Python
+### Input:
+### Output:
+#If you need to get the targets of a Relationship, you can use Usd.Relationship.GetForwardedTargets(). This method will give you the final composed targets for the Relationship and also take into account the relationship forwarding. That is, if the Relationship itself targets another Relationship, we want to get the final targets in a potential chain of Relationships. Learn more about relationship forwarding.
+from pxr import Usd, UsdGeom
+
+# For example, getting the proxy prim on an Imageable
+proxy_prim_rel: Usd.Relationship = UsdGeom.Imageable(myprim).GetProxyPrimRel()
+proxyPrimTargets = proxy_prim_rel.GetForwardedTargets()
+### Instruction:
+Set the Value of an Attribute，USD Python
+### Input:
+### Output:
+#In Omniverse, you can use the ChangeProperty command to set the default value or timesample value of an Attribute. With the USD API, you can call Usd.Attribute.Set() to set a default value or timesample value.
+from pxr import Usd, Sdf, Gf
+
+def set_float_attribute(attr: Usd.Attribute, value: float) -> None:
+    """
+    See: https://graphics.pixar.com/usd/release/api/class_usd_attribute.html
+    Args:
+        attr: The attribute to set.
+        value: A floating point value, i.e. `3.141516`.
+    """
+    attr.Set(value)
+
+def set_vector_attribute(attr: Usd.Attribute, value: Gf.Vec3f) -> None:
+    """
+    Args:
+        attr: The attribute to set.
+        value: A floating point vector, i.e. `(1., 2., 3.)`.
+    """
+    attr.Set(value)
+### Instruction:
+Set the Value of an Attribute，USD Python
+### Input:
+### Output:
+#In Omniverse, you can use the ChangeProperty command to set the default value or timesample value of an Attribute. With the USD API, you can call Usd.Attribute.Set() to set a default value or timesample value.
+#You can also set a timesample value at a particular time:
+from pxr import Usd, Sdf, Gf
+
+def set_float_attribute_at_time(attr: Usd.Attribute, value: float, time_value: float) -> None:
+    """
+    See: https://graphics.pixar.com/usd/release/api/class_usd_attribute.html
+    Args:
+        attr: The attribute to set.
+        value: A floating point value, i.e. `3.141516`.
+        time_value: Set a timesample at a particular time.
+    """
+    attr.Set(value, time_value)
+
+def set_vector_attribute_at_time(attr: Usd.Attribute, value: Gf.Vec3f, time_value: float) -> None:
+    """
+    Args:
+        attr: The attribute to set.
+        value: A floating point vector, i.e. `(1., 2., 3.)`.
+        time_value: Set a timesample at a particular time.
+    """
+    attr.Set(value, time_value)
+### Instruction:
+Set the Value of an Attribute，Python Kit Commands
+### Input:
+### Output:
+#In Omniverse, you can use the ChangeProperty command to set the default value or timesample value of an Attribute. With the USD API, you can call Usd.Attribute.Set() to set a default value or timesample value.
+#The ChangeProperty command allows users to undo the operation, but you must provide the value to use during the undo operation as the prev parameter.
+import omni.kit.commands
+from pxr import Gf, Sdf, Usd
+
+prim_path = Sdf.Path("/World/defaultLight")
+prim: Usd.Prim = stage.GetPrimAtPath(prim_path)
+prop_name = "xformOp:rotateXYZ"
+rotation = prim.GetAttribute(prop_name)
+omni.kit.commands.execute("ChangeProperty",
+    prop_path=Sdf.Path(prim_path.AppendProperty(prop_name)),
+    value=Gf.Vec3d(180.0, 0.0, 0.0),
+    prev=rotation.Get()
+)
+### Instruction:
+Set the Value of an Attribute，Python Kit Commands
+### Input:
+### Output:
+#In Omniverse, you can use the ChangeProperty command to set the default value or timesample value of an Attribute. With the USD API, you can call Usd.Attribute.Set() to set a default value or timesample value.
+#You can also set a timesample value at a particular time:
+import omni.kit.commands
+from pxr import Gf, Sdf, Usd
+
+prim_path = Sdf.Path("/World/defaultLight")
+prim: Usd.Prim = stage.GetPrimAtPath(prim_path)
+prop_name = "xformOp:rotateXYZ"
+rotation = prim.GetAttribute(prop_name)
+omni.kit.commands.execute("ChangeProperty",
+    prop_path=Sdf.Path(prim_path.AppendProperty(prop_name)),
+    value=Gf.Vec3d(180.0, 0.0, 0.0),
+    prev=rotation.Get(10.0),
+    timecode=Usd.TimeCode(10.0)
+)
+### Instruction:
+Add a Payload，USD Python
+### Input:
+### Output:
+#A Payload is a composition arc that functions similar to a Reference to enable users to aggregate layers or assets onto a Stage. The difference is that a users can choose to not load a Payload. This can help users see the full hierarchy of a Stage, but only load the heavy parts ( i.e. Payloads) that they need. A Payload targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to add a Payload to a prim. A single prim can have multiple Payloads.
+#With the USD API, you can use Usd.Prim.GetPayloads() to receive the payloads and add a new one with Usd.Payloads.AddPayload().
+from pxr import Usd, Sdf
+
+def add_payload(prim: Usd.Prim, payload_asset_path: str, payload_target_path: Sdf.Path) -> None:
+    payloads: Usd.Payloads = prim.GetPayloads()
+    payloads.AddPayload(
+        assetPath=payload_asset_path,
+        primPath=payload_target_path # OPTIONAL: Payload a specific target prim. Otherwise, uses the payloadd layer's defaultPrim.
+    )
+
+
+#############
+# Full Usage
+#############
+from pxr import UsdGeom
+
+# Create new USD stage for this sample
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+
+# Create and define default prim
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create an xform which should hold all payloads in this sample
+payload_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World/payload_prim")).GetPrim()
+
+# Add an external payload
+add_payload(payload_prim, "C:/path/to/file.usd", Sdf.Path("/World/some/target"))
+
+# Add other external payload to default prim
+add_payload(payload_prim, "C:/path/to/other/file.usd", Sdf.Path.emptyPath)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Get a list of all prepended payloads
+payloads = []
+for prim_spec in payload_prim.GetPrimStack():
+    payloads.extend(prim_spec.payloadList.prependedItems)
+
+# Check that the payload prim was created and that the payloads are correct
+assert payload_prim.IsValid()
+assert payloads[0] == Sdf.Payload(assetPath="C:/path/to/file.usd", primPath=Sdf.Path("/World/some/target"))
+assert payloads[1] == Sdf.Payload(assetPath="C:/path/to/other/file.usd")
+
+Python Kit Commands
+
+USDA
+### Instruction:
+Check if a Property Exists，Python Kit Commands
+### Input:
+### Output:
+#A Payload is a composition arc that functions similar to a Reference to enable users to aggregate layers or assets onto a Stage. The difference is that a users can choose to not load a Payload. This can help users see the full hierarchy of a Stage, but only load the heavy parts ( i.e. Payloads) that they need. A Payload targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to add a Payload to a prim. A single prim can have multiple Payloads.
+#The AddPayload command in Kit can add payloads to a prim.
+import omni.kit.commands
+from pxr import Usd, Sdf
+
+def add_payload(prim: Usd.Prim, payload_asset_path: str, payload_target_path: Sdf.Path) -> None:
+    omni.kit.commands.execute("AddPayload",
+        stage=prim.GetStage(),
+        prim_path = prim.GetPath(), # an existing prim to add the payload to.
+        payload=Sdf.Payload(
+            assetPath = payload_asset_path,
+            primPath = payload_target_path
+        )
+    )
+
+
+#############
+# Full Usage
+#############
+from pxr import UsdGeom
+import omni.usd
+
+# Create new USD stage for this sample in OV
+context: omni.usd.UsdContext = omni.usd.get_context()
+success: bool = context.new_stage()
+stage: Usd.Stage = context.get_stage()
+
+# Create and define default prim, so this file can be easily payloaderenced again
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create a xform which should hold all payloads in this sample
+payload_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World/payload_prim")).GetPrim()
+
+# Add an payload specific prim
+add_payload(payload_prim, "C:/path/to/file.usd", Sdf.Path("/World/some/target"))
+
+# Add other payload to default prim
+add_payload(payload_prim, "C:/path/to/other/file.usd", Sdf.Path.emptyPath)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Get a list of all prepended payloads
+payloads = []
+for prim_spec in payload_prim.GetPrimStack():
+    payloads.extend(prim_spec.payloadList.prependedItems)
+
+# Check that the payload prim was created and that the payloads are correct
+assert payload_prim.IsValid()
+assert payloads[0] == Sdf.Payload(assetPath="C:/path/to/file.usd", primPath=Sdf.Path("/World/some/target"))
+assert payloads[1] == Sdf.Payload(assetPath="C:/path/to/other/file.usd")
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#A Payload is a composition arc that functions similar to a Reference to enable users to aggregate layers or assets onto a Stage. The difference is that a users can choose to not load a Payload. This can help users see the full hierarchy of a Stage, but only load the heavy parts ( i.e. Payloads) that they need. A Payload targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to add a Payload to a prim. A single prim can have multiple Payloads.
+#This is an example USDA result from creating an Xform and adding two Payloads to it. The first payload target prim in this case is in the file C:/path/to/file.usd with the prim path /World/some/target and the second is the default prim in the file C:/path/to/other/file.usd.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Xform "ref_prim" (
+        prepend payload = [
+            @C:/path/to/file.usd@</World/some/target>,
+            @C:/path/to/other/file.usd@
+        ]
+    )
+    {
+    }
+}
+### Instruction:
+Add a Reference，USD Python
+### Input:
+### Output:
+#A Reference is a composition arc that enables users to aggregate layers or assets onto a Stage. A Reference targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to create and add a Reference to a prim. A single prim can have multiple References.
+#With the USD API, you can use Usd.Prim.GetReferences() to receive the references and add a new one with Usd.References.AddReference().
+from pxr import Usd, Sdf
+
+def add_int_reference(prim: Usd.Prim, ref_target_path: Sdf.Path) -> None:
+    references: Usd.References = prim.GetReferences()
+    references.AddInternalReference(ref_target_path)
+
+def add_ext_reference(prim: Usd.Prim, ref_asset_path: str, ref_target_path: Sdf.Path) -> None:
+    references: Usd.References = prim.GetReferences()
+    references.AddReference(
+        assetPath=ref_asset_path,
+        primPath=ref_target_path # OPTIONAL: Reference a specific target prim. Otherwise, uses the referenced layer's defaultPrim.
+    )
+
+
+#############
+# Full Usage
+#############
+from pxr import UsdGeom
+
+# Create new USD stage for this sample
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+
+# Create and define default prim, so this file can be easily referenced again
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create an xform which should hold all references in this sample
+ref_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World/ref_prim")).GetPrim()
+
+# Add an internal reference
+intern_target_path: Sdf.Path = Sdf.Path("/World/intern_target")
+target_prim: Usd.Prim = UsdGeom.Xform.Define(stage, intern_target_path).GetPrim()
+add_int_reference(ref_prim, intern_target_path)
+
+# Add an external reference to specific prim
+add_ext_reference(ref_prim, "C:/path/to/file.usd", Sdf.Path("/World/some/target"))
+
+# Add other external reference to default prim
+add_ext_reference(ref_prim, "C:/path/to/other/file.usd", Sdf.Path.emptyPath)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Get a list of all prepended references
+references = []
+for prim_spec in ref_prim.GetPrimStack():
+    references.extend(prim_spec.referenceList.prependedItems)
+
+# Check that the reference prim was created and that the references are correct
+assert ref_prim.IsValid()
+assert references[0] == Sdf.Reference(primPath=intern_target_path)
+assert references[1] == Sdf.Reference(assetPath="C:/path/to/file.usd", primPath=Sdf.Path("/World/some/target"))
+assert references[2] == Sdf.Reference(assetPath="C:/path/to/other/file.usd")
+### Instruction:
+Check if a Property Exists，Python Kit Commands
+### Input:
+### Output:
+#A Reference is a composition arc that enables users to aggregate layers or assets onto a Stage. A Reference targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to create and add a Reference to a prim. A single prim can have multiple References.
+#The AddReference command in Kit can add internal and external references to a prim.
+import omni.kit.commands
+from pxr import Usd, Sdf
+
+def add_int_reference(prim: Usd.Prim, ref_target_path: Sdf.Path) -> None:
+    omni.kit.commands.execute("AddReference",
+        stage=prim.GetStage(),
+        prim_path = prim.GetPath(), # an existing prim to add the reference to.
+        reference=Sdf.Reference(
+            primPath = ref_target_path
+        )
+    )
+
+def add_ext_reference(prim: Usd.Prim, ref_asset_path: str, ref_target_path: Sdf.Path) -> None:
+    omni.kit.commands.execute("AddReference",
+        stage=prim.GetStage(),
+        prim_path = prim.GetPath(), # an existing prim to add the reference to.
+        reference=Sdf.Reference(
+            assetPath = ref_asset_path,
+            primPath = ref_target_path
+        )
+    )
+
+
+#############
+# Full Usage
+#############
+import omni.usd
+from pxr import UsdGeom
+
+# Create new USD stage for this sample in OV
+context: omni.usd.UsdContext = omni.usd.get_context()
+success: bool = context.new_stage()
+stage: Usd.Stage = context.get_stage()
+
+# Create and define default prim, so this file can be easily referenced again
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create a xform which should hold all references in this sample
+ref_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World/ref_prim")).GetPrim()
+
+# Add an internal reference
+intern_target_path: Sdf.Path = Sdf.Path("/World/intern_target")
+target_prim: Usd.Prim = UsdGeom.Xform.Define(stage, intern_target_path).GetPrim()
+add_int_reference(ref_prim, intern_target_path)
+
+# Add an external reference to specific prim
+add_ext_reference(ref_prim, "C:/path/to/file.usd", Sdf.Path("/World/some/target"))
+
+# Add other external reference to default prim
+add_ext_reference(ref_prim, "C:/path/to/other/file.usd", Sdf.Path.emptyPath)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Get a list of all prepended references
+references = []
+for prim_spec in ref_prim.GetPrimStack():
+    references.extend(prim_spec.referenceList.prependedItems)
+
+# Check that the reference prim was created and that the references are correct
+assert ref_prim.IsValid()
+assert references[0] == Sdf.Reference(primPath=intern_target_path)
+assert references[1] == Sdf.Reference(assetPath="C:/path/to/file.usd", primPath=Sdf.Path("/World/some/target"))
+assert references[2] == Sdf.Reference(assetPath="C:/path/to/other/file.usd")
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#A Reference is a composition arc that enables users to aggregate layers or assets onto a Stage. A Reference targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to create and add a Reference to a prim. A single prim can have multiple References.
+#This is an example USDA result from creating an Xform and adding three References to it. The first referenced target prim is inside the current file with the prim path /World/intern_target. The second referenced target prim is in the file C:/path/to/file.usd with the prim path /World/some/target and the third is the default prim in the file C:/path/to/other/file.usd.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Xform "ref_prim" (
+        prepend references = [
+            </World/intern_target>,
+            @C:/path/to/file.usd@</World/some/target>,
+            @C:/path/to/other/file.usd@
+        ]
+    )
+    {
+    }
+
+    def Xform "intern_target"
+    {
+    }
+}
+### Instruction:
+Create a Payload，Python Kit Commands
+### Input:
+### Output:
+#A Payload is a composition arc that functions similar to a Reference to enable users to aggregate layers or assets onto a Stage. The difference is that a users can choose to not load a Payload. This can help users see the full hierarchy of a Stage, but only load the heavy parts ( i.e. Payloads) that they need. A Payload targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to add a Payload to a prim. A single prim can have multiple Payloads.
+#The CreatePayload command is a convenient wrapper that creates an Xform prim and adds a Payload to it all at once. If you don’t need the two steps batched together, you may want to add a Payload to an existing prim via Kit Commands or USD Python API.
+import omni.kit.commands
+import omni.usd
+from pxr import Usd, Sdf
+
+def create_payload(usd_context: omni.usd.UsdContext, path_to: Sdf.Path, asset_path: str, prim_path: Sdf.Path) -> Usd.Prim:
+    omni.kit.commands.execute("CreatePayload",
+        usd_context=usd_context,
+        path_to=path_to, # Prim path for where to create the prim with the payload
+        asset_path=asset_path, # The file path to the payload USD. Relative paths are accepted too.
+        prim_path=prim_path # OPTIONAL: Prim path to a prim in the payloaded USD, if not provided the default prim is used
+    )
+    return usd_context.get_stage().GetPrimAtPath(path_to)
+
+
+#############
+# Full Usage
+#############
+
+# Get the USD context from kit
+context: omni.usd.UsdContext = omni.usd.get_context()
+
+# Create and add external payload to specific prim
+payload_prim: Usd.Prim = create_payload(context, Sdf.Path("/World/payload_prim"), "C:/path/to/file.usd", Sdf.Path("/World/some/target"))
+
+# Get the existing USD stage from kit
+stage: Usd.Stage = context.get_stage()
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the payload prims were created
+assert payload_prim.IsValid()
+
+assert payload_prim.GetPrimStack()[0].payloadList.prependedItems[0] == Sdf.Payload(assetPath="file:/C:/path/to/file.usd", primPath=Sdf.Path("/World/some/target"))
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#A Payload is a composition arc that functions similar to a Reference to enable users to aggregate layers or assets onto a Stage. The difference is that a users can choose to not load a Payload. This can help users see the full hierarchy of a Stage, but only load the heavy parts ( i.e. Payloads) that they need. A Payload targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to add a Payload to a prim. A single prim can have multiple Payloads.
+#This is an example USDA result from creating a reference with the CreateReference command.
+#usda 1.0
+(
+    endTimeCode = 100
+    metersPerUnit = 0.01
+    startTimeCode = 0
+    timeCodesPerSecond = 60
+    upAxis = "Y"
+)
+
+def "World"
+{
+    def "payload_prim" (
+        prepend payload = @file:/C:/path/to/file.usd@</World/some/target>
+    )
+    {
+    }
+}
+### Instruction:
+Create a Reference，Python Kit Commands
+### Input:
+### Output:
+#A Reference is a composition arc that enables users to aggregate layers or assets onto a Stage. A Reference targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to create and add a Reference to a prim. A single prim can have multiple References.
+#The CreateReference command is a convenient wrapper that creates an Xform prim and adds a Reference to it all at once. If you don’t need the two steps batched together, you may want to add a Reference to an existing prim via Kit Commands or USD API.
+import omni.kit.commands
+import omni.usd
+from pxr import Usd, Sdf
+
+def create_reference(usd_context: omni.usd.UsdContext, path_to: Sdf.Path, asset_path: str, prim_path: Sdf.Path) -> Usd.Prim:
+    omni.kit.commands.execute("CreateReference",
+        usd_context=usd_context,
+        path_to=path_to, # Prim path for where to create the prim with the reference
+        asset_path=asset_path, # The file path to reference. Relative paths are accepted too.
+        prim_path=prim_path # OPTIONAL: Prim path to a prim in the referenced USD, if not provided the default prim is used
+    )
+    return usd_context.get_stage().GetPrimAtPath(path_to)
+
+
+#############
+# Full Usage
+#############
+
+# Get the USD context from kit
+context: omni.usd.UsdContext = omni.usd.get_context()
+
+# Create and add external reference to specific prim
+ref_prim: Usd.Prim = create_reference(context, Sdf.Path("/World/ref_prim"), "C:/path/to/file.usd", Sdf.Path("/World/some/target"))
+
+# Get the existing USD stage from kit
+stage: Usd.Stage = context.get_stage()
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the reference prims were created
+assert ref_prim.IsValid()
+
+assert ref_prim.GetPrimStack()[0].referenceList.prependedItems[0] == Sdf.Reference(assetPath="file:/C:/path/to/file.usd", primPath=Sdf.Path("/World/some/target"))
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#A Reference is a composition arc that enables users to aggregate layers or assets onto a Stage. A Reference targets a prim from a layer and loads it and all of its descendants into a new namespace within the referencing layer. This snippet shows how to create and add a Reference to a prim. A single prim can have multiple References.
+#This is an example USDA result from creating a reference with the CreateReference command.
+#usda 1.0
+(
+    endTimeCode = 100
+    metersPerUnit = 0.01
+    startTimeCode = 0
+    timeCodesPerSecond = 60
+    upAxis = "Y"
+)
+
+def "World"
+{
+    def "ref_prim" (
+        prepend references = @file:/C:/path/to/file.usd@</World/some/target>
+    )
+    {
+    }
+}
+### Instruction:
+Add a Specialize，USD Python
+### Input:
+### Output:
+#A Specialize is a composition arc that enables a prim to contain all of the scene description contained in the base prim it specializes. The difference between Specialize and Inherit is that opinions authored on the prim with the specialize arc will always be stronger than the base prim. This snippet shows how to add a Specialize arc to a prim. A single prim can have multiple Specializes.
+from pxr import Usd
+
+def add_specialize_to(base_prim: Usd.Prim, specializes: Usd.Specializes) -> bool:
+    return specializes.AddSpecialize(base_prim.GetPath())
+
+#############
+# Full Usage
+#############
+from pxr import Sdf, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+prim: Usd.Prim = UsdGeom.Xform.Define(stage, default_prim.GetPath().AppendPath("prim")).GetPrim()
+base: Usd.Prim = UsdGeom.Xform.Define(stage, default_prim.GetPath().AppendPath("base")).GetPrim()
+specializes: Usd.Specializes = prim.GetSpecializes()
+
+added_successfully = add_specialize_to(base, specializes)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+assert added_successfully
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#A Specialize is a composition arc that enables a prim to contain all of the scene description contained in the base prim it specializes. The difference between Specialize and Inherit is that opinions authored on the prim with the specialize arc will always be stronger than the base prim. This snippet shows how to add a Specialize arc to a prim. A single prim can have multiple Specializes.
+#This is an example USDA result adding an Specialize Arc to a prim.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Xform "prim" (
+        prepend specializes = </World/base>
+    )
+    {
+    }
+
+    def Xform "base"
+    {
+    }
+}
+### Instruction:
+Get the Current Stage，Python Kit Commands
+### Input:
+### Output:
+#USD itself does not currently have a notion of a user session associated with a current stage. This is handled by higher-level facilities in USD applications such as usdviewApi in USDView and omni.usd in Omniverse Kit.
+from pxr import Usd
+import omni.usd
+
+def get_current_stage() -> Usd.Stage:
+    return omni.usd.get_context().get_stage()
+
+
+#############
+# Full Usage
+#############
+# Create a new USD stage through the UsdContext
+success: bool = omni.usd.get_context().new_stage()
+
+# Get the the current stage from the UsdContext
+current_stage: Usd.Stage = get_current_stage()
+
+# Check if the a new stage was created and a valid stage was returned
+assert success
+assert current_stage
+### Instruction:
+Check if a Property Exists，USD Python
+### Input:
+### Output:
+#USD itself does not currently have a notion of a user session associated with a current stage. This is handled by higher-level facilities in USD applications such as usdviewApi in USDView and omni.usd in Omniverse Kit.
+#usdview Python interpreter has a built-in object called usdviewApi that gives you access to the currently loaded Stage.
+from pxr import Usd
+
+stage: Usd.Stage = usdviewApi.stage
+### Instruction:
+Set the Default Prim on a Stage，USD Python
+### Input:
+### Output:
+#It’s best practice to set the defaultPrim metadata on a Stage if the Stage’s root layer may be used as a Reference or Payload. Otherwise, consumers of your Stage are forced to provide a target prim when they create a Reference or Payload arc. Even though the Usd.Stage.SetDefaultPrim() accepts any Usd.Prim, the default prim must be a top-level prim on the Stage.
+from pxr import Usd 
+
+def set_default_prim(stage: Usd.Stage, prim: Usd.Prim):
+    stage.SetDefaultPrim(prim)
+
+
+#############
+# Full Usage
+#############
+
+from pxr import UsdGeom, Sdf
+
+# Create new USD stage for this sample
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+
+# Create an xform which should be set as the default prim
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+
+# Make the xform the default prim
+set_default_prim(stage, default_prim)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the expected default prim was set
+assert stage.GetDefaultPrim() == default_prim
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#It’s best practice to set the defaultPrim metadata on a Stage if the Stage’s root layer may be used as a Reference or Payload. Otherwise, consumers of your Stage are forced to provide a target prim when they create a Reference or Payload arc. Even though the Usd.Stage.SetDefaultPrim() accepts any Usd.Prim, the default prim must be a top-level prim on the Stage.
+#This is an example USDA result from setting the defaultPrim metadata in an empty layer.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+}
+### Instruction:
+Set the Stage Linear Units，USD Python
+### Input:
+### Output:
+#You can set the metersPerUnit metadata on the stage using UsdGeom.SetStageMetersPerUnit. Convenience shortcuts for units are scoped in UsdGeom.LinearUnits (e.g. UsdGeom.LinearUnits.meters is 1.0 metersPerUnit)
+#You can set the metersPerUnit metadata on the stage using UsdGeom.SetStageMetersPerUnit to define the linear units of the stage. Convenience shortcuts for units are scoped in UsdGeom.LinearUnits (e.g. UsdGeom.LinearUnits.meters is 1.0 metersPerUnit)
+from pxr import Usd, UsdGeom
+
+
+def set_meters_per_unit(stage: Usd.Stage, unit: UsdGeom.LinearUnits = UsdGeom.LinearUnits.centimeters):
+    UsdGeom.SetStageMetersPerUnit(stage, unit) # Any double-precision float can be used for metersPerUnit.
+
+
+#############
+# Full Usage
+#############
+unit: UsdGeom.LinearUnits = UsdGeom.LinearUnits.centimeters
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+set_meters_per_unit(stage, unit)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the expected meterPerUnit were set
+assert UsdGeom.GetStageMetersPerUnit(stage) == unit
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#You can set the metersPerUnit metadata on the stage using UsdGeom.SetStageMetersPerUnit. Convenience shortcuts for units are scoped in UsdGeom.LinearUnits (e.g. UsdGeom.LinearUnits.meters is 1.0 metersPerUnit)
+#This is an example USDA result from setting the metersPerUnit metadata in an empty layer.
+#usda 1.0
+(
+    metersPerUnit = 0.01
+)
+### Instruction:
+Set the Stage Up Axis，USD Python
+### Input:
+### Output:
+#You can set the upAxis metadata on the stage using UsdGeom.SetStageUpAxis to define which world axis points up. The tokens for the different axes are scoped in UsdGeom.Tokens.
+#You can set the upAxis metadata on the stage using UsdGeom.SetStageUpAxis to define which world axis points up. The tokens for the different axes are scoped in UsdGeom.Tokens.
+from pxr import Usd, UsdGeom
+
+def set_up_axis(stage: Usd.Stage, axis: UsdGeom.Tokens):
+    UsdGeom.SetStageUpAxis(stage, axis)
+
+
+#############
+# Full Usage
+#############
+axis: UsdGeom.Tokens = UsdGeom.Tokens.z
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+set_up_axis(stage, axis)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the expected upAxis was set
+assert UsdGeom.GetStageUpAxis(stage) == axis 
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#You can set the upAxis metadata on the stage using UsdGeom.SetStageUpAxis to define which world axis points up. The tokens for the different axes are scoped in UsdGeom.Tokens.
+#This is an example USDA result from setting the upAxis metadata in an empty layer.
+#usda 1.0
+(
+    upAxis = "Z"
+)
+### Instruction:
+Compute the Bounding Box for a Prim，USD Python
+### Input:
+### Output:
+#USD includes functions for computing the bounding box for a prim and all of its descendants. Bounding boxes are represented by the minimum point and maximum point of the bounding box. The two points form a diagonal across the interior of the box. These code samples show how to compute and retrieve a prim’s bounding box in world space.
+from pxr import Usd, UsdGeom, Gf
+
+def compute_bbox(prim: Usd.Prim) -> Gf.Range3d:
+    """
+    Compute Bounding Box using ComputeWorldBound at UsdGeom.Imageable
+    See https://graphics.pixar.com/usd/release/api/class_usd_geom_imageable.html
+
+    Args:
+        prim: A prim to compute the bounding box.
+    Returns: 
+        A range (i.e. bounding box), see more at: https://graphics.pixar.com/usd/release/api/class_gf_range3d.html
+    """
+    imageable = UsdGeom.Imageable(prim)
+    time = Usd.TimeCode.Default() # The time at which we compute the bounding box
+    bound = imageable.ComputeWorldBound(time, UsdGeom.Tokens.default_)
+    bound_range = bound.ComputeAlignedBox()
+    return bound_range
+### Instruction:
+Compute the Bounding Box for a Prim，USD Python
+### Input:
+### Output:
+#USD includes functions for computing the bounding box for a prim and all of its descendants. Bounding boxes are represented by the minimum point and maximum point of the bounding box. The two points form a diagonal across the interior of the box. These code samples show how to compute and retrieve a prim’s bounding box in world space.
+#Alternatively, if you need to compute the bounding box for multiple prims on a stage, UsdGeom.BBoxCache is more efficient.
+from pxr import Usd, UsdGeom, Gf
+
+def compute_bbox_with_cache(cache: UsdGeom.BBoxCache, prim: Usd.Prim) -> Gf.Range3d:
+    """
+    Compute Bounding Box using ComputeWorldBound at UsdGeom.BBoxCache. More efficient if used multiple times.
+    See https://graphics.pixar.com/usd/release/api/class_usd_geom_b_box_cache.html
+    
+    Args:
+        cache: A cached, i.e. `UsdGeom.BBoxCache(Usd.TimeCode.Default(), ['default', 'render'])`
+        prim: A prim to compute the bounding box.
+    Returns: 
+        A range (i.e. bounding box), see more at: https://graphics.pixar.com/usd/release/api/class_gf_range3d.html
+
+    """
+    bound = cache.ComputeWorldBound(prim)
+    bound_range = bound.ComputeAlignedBox()
+    return bound_range
+### Instruction:
+Check if a Property Exists，Python Kit Commands
+### Input:
+### Output:
+#USD includes functions for computing the bounding box for a prim and all of its descendants. Bounding boxes are represented by the minimum point and maximum point of the bounding box. The two points form a diagonal across the interior of the box. These code samples show how to compute and retrieve a prim’s bounding box in world space.
+import typing
+
+import carb
+import omni.usd
+
+def compute_path_bbox(prim_path: str) -> typing.Tuple[carb.Double3, carb.Double3]:
+    """
+    Compute Bounding Box using omni.usd.UsdContext.compute_path_world_bounding_box
+    See https://docs.omniverse.nvidia.com/kit/docs/omni.usd/latest/omni.usd/omni.usd.UsdContext.html#omni.usd.UsdContext.compute_path_world_bounding_box
+
+    Args:
+        prim_path: A prim path to compute the bounding box.
+    Returns: 
+        A range (i.e. bounding box) as a minimum point and maximum point.
+    """
+    return omni.usd.get_context().compute_path_world_bounding_box(prim_path)
+### Instruction:
+Check if a Property Exists，USD Python
+### Input:
+### Output:
+#If you need to get the local transformation of a prim (i.e. not taking into account the transformations of any ancestor prims), you can use a convenience function in Kit, omni.usd.get_local_transform_SRT(). Alternatively, you can use UsdGeom.Xformable.GetLocalTransformation() to get the local transformation matrix and decompose it into individual components.
+import typing
+from pxr import Gf, Usd, UsdGeom
+
+def get_local_transform_xform(prim: Usd.Prim) -> typing.Tuple[Gf.Vec3d, Gf.Rotation, Gf.Vec3d]:
+    """
+    Get the local transformation of a prim using Xformable.
+    See https://graphics.pixar.com/usd/release/api/class_usd_geom_xformable.html
+    Args:
+        prim: The prim to calculate the local transformation.
+    Returns:
+        A tuple of:
+        - Translation vector.
+        - Rotation quaternion, i.e. 3d vector plus angle.
+        - Scale vector.
+    """
+    xform = UsdGeom.Xformable(prim)
+    local_transformation: Gf.Matrix4d = xform.GetLocalTransformation()
+    translation: Gf.Vec3d = local_transformation.ExtractTranslation()
+    rotation: Gf.Rotation = local_transformation.ExtractRotation()
+    scale: Gf.Vec3d = Gf.Vec3d(*(v.GetLength() for v in local_transformation.ExtractRotationMatrix()))
+    return translation, rotation, scale
+
+
+#############
+# Full Usage
+#############
+
+from pxr import Sdf
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+xform: Usd.Prim = UsdGeom.Xform.Define(stage, default_prim.GetPath().AppendPath("Xform"))
+xform.AddTranslateOp().Set(value=(100,10,0))
+xform.AddRotateXYZOp().Set(value=(0,50,0))
+xform.AddScaleOp().Set(value=(5,5,5))
+
+cube = UsdGeom.Cube.Define(stage, xform.GetPath().AppendPath("Cube"))
+cube.AddTranslateOp().Set(value=(4,0,0))
+cube.AddRotateXYZOp().Set(value=(100,0,0))
+cube.AddScaleOp().Set(value=(2,2,2))
+
+transform = get_local_transform_xform(cube)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+cube_prim = cube.GetPrim()
+
+assert transform[0] == cube_prim.GetAttribute('xformOp:translate').Get()
+assert (100,0,0) == cube_prim.GetAttribute('xformOp:rotateXYZ').Get()
+assert transform[2] == cube_prim.GetAttribute('xformOp:scale').Get()
+### Instruction:
+Check if a Property Exists，Python Kit Commands
+### Input:
+### Output:
+#If you need to get the local transformation of a prim (i.e. not taking into account the transformations of any ancestor prims), you can use a convenience function in Kit, omni.usd.get_local_transform_SRT(). Alternatively, you can use UsdGeom.Xformable.GetLocalTransformation() to get the local transformation matrix and decompose it into individual components.
+import typing
+import omni.usd
+from pxr import Usd, Gf
+
+def get_local_transform_omni(prim: Usd.Prim) -> typing.Tuple[Gf.Vec3d, Gf.Rotation, Gf.Vec3d]:
+    """
+    Get the local transformation of a prim using omni.usd.get_local_transform_SRT.
+    See https://docs.omniverse.nvidia.com/kit/docs/omni.usd/latest/omni.usd/omni.usd.get_local_transform_SRT.html
+    Args:
+        prim: The prim to calculate the local transformation.
+    Returns:
+        A tuple of:
+        - Translation vector.
+        - Rotation quaternion, i.e. 3d vector plus angle.
+        - Scale vector.
+    """
+    local_transform = omni.usd.get_local_transform_SRT(prim)
+    scale: Gf.Vec3d = local_transform[0]
+    rotation: Gf.Vec3d = local_transform[1]
+    rotation_order: float = local_transform[2]
+    translation: Gf.Vec3d = local_transform[3]
+    return translation, Gf.Rotation(rotation, rotation_order), scale
+
+#############
+# Full Usage
+#############
+
+import omni.kit.commands
+
+# Create an Xform with a Cube Prim as it's Child
+omni.kit.commands.execute('CreatePrimWithDefaultXform',
+	prim_type='Xform',
+	attributes={},
+	select_new_prim=True)
+
+omni.kit.commands.execute('TransformMultiPrimsSRTCpp',
+	count=1,
+	paths=['/World/Xform'],
+	new_translations=[100, 0, 0],
+	new_rotation_eulers=[0, 50 ,0],
+	new_rotation_orders=[0, 1, 2],
+	new_scales=[5, 5, 5],
+	old_translations=[0.0, 0.0, 0.0],
+	old_rotation_eulers=[0.0, 0.0, 0.0],
+	old_rotation_orders=[0, 1, 2],
+	old_scales=[1.0, 1.0, 1.0],
+	usd_context_name='',
+	time_code=0.0)
+
+omni.kit.commands.execute('CreateMeshPrimWithDefaultXform',
+	prim_type='Cube',
+	prim_path='/World/Xform/Cube',
+	select_new_prim=True,
+	prepend_default_prim=False)
+
+omni.kit.commands.execute('TransformMultiPrimsSRTCpp',
+	count=1,
+	paths=['/World/Xform/Cube'],
+	new_translations=[4, 0, 0],
+	new_rotation_eulers=[100, 0 ,0],
+	new_rotation_orders=[0, 1, 2],
+	new_scales=[2, 2, 2],
+	old_translations=[0.0, 0.0, 0.0],
+	old_rotation_eulers=[0.0, 0.0, 0.0],
+	old_rotation_orders=[0, 1, 2],
+	old_scales=[1.0, 1.0, 1.0],
+	usd_context_name='',
+	time_code=0.0)
+
+stage = omni.usd.get_context().get_stage()
+cube_prim = stage.GetPrimAtPath("/World/Xform/Cube")
+transform = get_local_transform_omni(cube_prim)
+
+assert transform[0] == cube_prim.GetAttribute('xformOp:translate').Get()
+assert (100,0,0) == cube_prim.GetAttribute('xformOp:rotateXYZ').Get()
+assert transform[2] == cube_prim.GetAttribute('xformOp:scale').Get()
+### Instruction:
+Check if a Property Exists，USDA 
+### Input:
+### Output:
+#If you need to get the local transformation of a prim (i.e. not taking into account the transformations of any ancestor prims), you can use a convenience function in Kit, omni.usd.get_local_transform_SRT(). Alternatively, you can use UsdGeom.Xformable.GetLocalTransformation() to get the local transformation matrix and decompose it into individual components.
+#This is an example USDA result from creating (and setting) float and float3 Attributes on the default Prim.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Xform "Xform"
+    {
+        float3 xformOp:rotateXYZ = (0, 50, 0)
+        float3 xformOp:scale = (5, 5, 5)
+        double3 xformOp:translate = (100, 10, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+        def Cube "Cube"
+        {
+            float3 xformOp:rotateXYZ = (100, 0, 0)
+            float3 xformOp:scale = (2, 2, 2)
+            double3 xformOp:translate = (4, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+        }
+    }
+}
+### Instruction:
+Get the World Space Transforms for a Prim，USD Python
+### Input:
+### Output:
+#If you need to get the transformation of a prim in world space (i.e. taking into account the transformations of any ancestor prims), you can use a convenience function in Kit, omni.usd.get_world_transform_matrix(). Alternatively, you can use UsdGeom.Xformable.ComputeLocalToWorldTransform() or UsdGeom.XformCache.GetLocalToWorldTransform() to get the world transformation matrix. Once you have the matrix, decompose it into individual xform components.
+import typing
+from pxr import Usd, UsdGeom, Gf
+
+def get_world_transform_xform(prim: Usd.Prim) -> typing.Tuple[Gf.Vec3d, Gf.Rotation, Gf.Vec3d]:
+    """
+    Get the local transformation of a prim using Xformable.
+    See https://graphics.pixar.com/usd/release/api/class_usd_geom_xformable.html
+    Args:
+        prim: The prim to calculate the world transformation.
+    Returns:
+        A tuple of:
+        - Translation vector.
+        - Rotation quaternion, i.e. 3d vector plus angle.
+        - Scale vector.
+    """
+    xform = UsdGeom.Xformable(prim)
+    time = Usd.TimeCode.Default() # The time at which we compute the bounding box
+    world_transform: Gf.Matrix4d = xform.ComputeLocalToWorldTransform(time)
+    translation: Gf.Vec3d = world_transform.ExtractTranslation()
+    rotation: Gf.Rotation = world_transform.ExtractRotation()
+    scale: Gf.Vec3d = Gf.Vec3d(*(v.GetLength() for v in world_transform.ExtractRotationMatrix()))
+    return translation, rotation, scale
+
+#############
+# Full Usage
+#############
+
+from pxr import Sdf
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+xform: Usd.Prim = UsdGeom.Xform.Define(stage, default_prim.GetPath().AppendPath("Xform"))
+xform.AddTranslateOp().Set(value=(100,10,0))
+xform.AddRotateXYZOp().Set(value=(0,50,0))
+xform.AddScaleOp().Set(value=(5,5,5))
+
+cube = UsdGeom.Cube.Define(stage, xform.GetPath().AppendPath("Cube"))
+cube.AddTranslateOp().Set(value=(4,0,0))
+cube.AddRotateXYZOp().Set(value=(100,0,0))
+cube.AddScaleOp().Set(value=(2,2,2))
+
+transform = get_world_transform_xform(cube)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+### Instruction:
+Check if a Property Exists，USD Python
+### Input:
+### Output:
+#If you need to get the transformation of a prim in world space (i.e. taking into account the transformations of any ancestor prims), you can use a convenience function in Kit, omni.usd.get_world_transform_matrix(). Alternatively, you can use UsdGeom.Xformable.ComputeLocalToWorldTransform() or UsdGeom.XformCache.GetLocalToWorldTransform() to get the world transformation matrix. Once you have the matrix, decompose it into individual xform components.
+import typing
+from pxr import Usd, UsdGeom, Gf
+
+def get_world_transform_xform(prim: Usd.Prim) -> typing.Tuple[Gf.Vec3d, Gf.Rotation, Gf.Vec3d]:
+    """
+    Get the local transformation of a prim using Xformable.
+    See https://graphics.pixar.com/usd/release/api/class_usd_geom_xformable.html
+    Args:
+        prim: The prim to calculate the world transformation.
+    Returns:
+        A tuple of:
+        - Translation vector.
+        - Rotation quaternion, i.e. 3d vector plus angle.
+        - Scale vector.
+    """
+    xform = UsdGeom.Xformable(prim)
+    time = Usd.TimeCode.Default() # The time at which we compute the bounding box
+    world_transform: Gf.Matrix4d = xform.ComputeLocalToWorldTransform(time)
+    translation: Gf.Vec3d = world_transform.ExtractTranslation()
+    rotation: Gf.Rotation = world_transform.ExtractRotation()
+    scale: Gf.Vec3d = Gf.Vec3d(*(v.GetLength() for v in world_transform.ExtractRotationMatrix()))
+    return translation, rotation, scale
+
+#############
+# Full Usage
+#############
+
+from pxr import Sdf
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+xform: Usd.Prim = UsdGeom.Xform.Define(stage, default_prim.GetPath().AppendPath("Xform"))
+xform.AddTranslateOp().Set(value=(100,10,0))
+xform.AddRotateXYZOp().Set(value=(0,50,0))
+xform.AddScaleOp().Set(value=(5,5,5))
+
+cube = UsdGeom.Cube.Define(stage, xform.GetPath().AppendPath("Cube"))
+cube.AddTranslateOp().Set(value=(4,0,0))
+cube.AddRotateXYZOp().Set(value=(100,0,0))
+cube.AddScaleOp().Set(value=(2,2,2))
+
+transform = get_world_transform_xform(cube)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+### Instruction:
+Check if a Property Exists，USD Python
+### Input:
+### Output:
+#If you need to get the transformation of a prim in world space (i.e. taking into account the transformations of any ancestor prims), you can use a convenience function in Kit, omni.usd.get_world_transform_matrix(). Alternatively, you can use UsdGeom.Xformable.ComputeLocalToWorldTransform() or UsdGeom.XformCache.GetLocalToWorldTransform() to get the world transformation matrix. Once you have the matrix, decompose it into individual xform components.
+#Alternatively, if you need to compute the world transform for multiple prims on a stage, UsdGeom.XformCache is more efficient.
+import typing
+from pxr import Usd, UsdGeom, Gf
+
+def get_world_transform_cache(cache: UsdGeom.XformCache, prim: Usd.Prim) -> typing.Tuple[Gf.Vec3d, Gf.Rotation, Gf.Vec3d]:
+    """
+    Get the local transformation of a prim using UsdGeom.XformCache.
+    See: https://graphics.pixar.com/usd/release/api/class_usd_geom_xform_cache.html
+    Args:
+        cache: A cache, created for example as `UsdGeom.XformCache()`
+        prim: The prim to calculate the world transformation.
+    Returns:
+        A tuple of:
+        - Translation vector.
+        - Rotation quaternion, i.e. 3d vector plus angle.
+        - Scale vector.
+    """
+    time = Usd.TimeCode.Default() # The time at which we compute the bounding box
+    world_transform: Gf.Matrix4d = cache.GetLocalToWorldTransform(time)
+    translation: Gf.Vec3d = world_transform.ExtractTranslation()
+    rotation: Gf.Rotation = world_transform.ExtractRotation()
+    scale: Gf.Vec3d = Gf.Vec3d(*(v.GetLength() for v in world_transform.ExtractRotationMatrix()))
+    return translation, rotation, scale
+### Instruction:
+Get the World Space Transforms for a Prim，Python Kit Commands
+### Input:
+### Output:
+#If you need to get the transformation of a prim in world space (i.e. taking into account the transformations of any ancestor prims), you can use a convenience function in Kit, omni.usd.get_world_transform_matrix(). Alternatively, you can use UsdGeom.Xformable.ComputeLocalToWorldTransform() or UsdGeom.XformCache.GetLocalToWorldTransform() to get the world transformation matrix. Once you have the matrix, decompose it into individual xform components.
+def get_world_transform_xform(prim: Usd.Prim) -> typing.Tuple[Gf.Vec3d, Gf.Rotation, Gf.Vec3d]
+    """
+    Get the local transformation of a prim using omni.usd.get_world_transform_matrix().
+    See https://docs.omniverse.nvidia.com/kit/docs/omni.usd/latest/omni.usd/omni.usd.get_world_transform_matrix.html
+    Args:
+        prim: The prim to calculate the world transformation.
+    Returns:
+        A tuple of:
+        - Translation vector.
+        - Rotation quaternion, i.e. 3d vector plus angle.
+        - Scale vector.
+    """
+    world_transform: Gf.Matrix4d = omni.usd.get_world_transform_matrix(prim)
+    translation: Gf.Vec3d = world_transform.ExtractTranslation()
+    rotation: Gf.Rotation = world_transform.ExtractRotation()
+    scale: Gf.Vec3d = Gf.Vec3d(*(v.GetLength() for v in world_transform.ExtractRotationMatrix()))
+    return translation, rotation, scale
+    
+### Instruction:
+Author Data for a Particular Variant，USD Python
+### Input:
+### Output:
+#Opinions (i.e. data) for a particular variant can be authored on different layers. This shows how you can author opinions for an existing variant that might have been authored on a different layer.
+shading_varset = prim.GetVariantSets().GetVariantSet("shading")
+selected_variant = shading_varset.GetVariantSelection()
+
+shading_varset.SetVariantSelection(variant_name)
+with shading_varset.GetVariantEditContext():
+    # Specs authored within this context are authored just for the variant.
+    ...
+
+# Set the variant selection back to the previously selected variant.
+# Alternatively, you can use Usd.VariantSet.ClearVariantSelection()
+# if you know that there isn't a variant selection in the current EditTarget.
+if selected_variant:
+    shading_varset.SetVariantSelection(selected_variant)
+### Instruction:
+Create a Variant Set，USD Python
+### Input:
+### Output:
+#A Variant Set is a composition arc that serves as a sort of “switchable Reference” allowing you to provide alternate property opinions or entire prim hierarchies. In this snippet, you’ll find how to create a Variant Set, add variants to the new Variant Set and author opinions for each variant.
+from pxr import Usd
+
+def create_variant_set(prim: Usd.Prim, variant_set_name: str, variants: list) -> Usd.VariantSet:
+    variant_set = prim.GetVariantSets().AddVariantSet(variant_set_name) 
+    for variant in variants:
+        variant_set.AddVariant(variant)
+    return variant_set
+
+#############
+# Full Usage
+#############
+from pxr import Sdf, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+# Create the variant set and add your variants to it.
+variants = ["red", "blue", "green"]
+shading_varset: Usd.VariantSet = create_variant_set(default_prim, "shading", variants)
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+assert default_prim.GetVariantSets().HasVariantSet("shading")
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#A Variant Set is a composition arc that serves as a sort of “switchable Reference” allowing you to provide alternate property opinions or entire prim hierarchies. In this snippet, you’ll find how to create a Variant Set, add variants to the new Variant Set and author opinions for each variant.
+#This is an example USDA result from creating a Variant Set and adding Variants to the Set.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World" (
+    prepend variantSets = "shading"
+)
+{
+    variantSet "shading" = {
+        "blue" {
+
+        }
+        "green" {
+
+        }
+        "red" {
+
+        }
+    }
+}
+### Instruction:
+Select a Variant for a Variant Set，USD Python
+### Input:
+### Output:
+#Apart from selecting a default Variant when you create a Variant Set, you may want to change the selection in other USD layers. For example, a model could have a shading Variant Set defined, but when you Reference that model a few times in a Stage, you may want to select a different shading Variant for each Reference.
+from pxr import Usd
+
+def select_variant_from_varaint_set(prim: Usd.Prim, variant_set_name: str, variant_name: str) -> None:
+    variant_set = prim.GetVariantSets().GetVariantSet(variant_set_name)
+    variant_set.SetVariantSelection(variant_name)
+
+#############
+# Full Usage
+#############
+from pxr import Sdf, UsdGeom
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim: Usd.Prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World")).GetPrim()
+stage.SetDefaultPrim(default_prim)
+
+# Create the Variant Set
+shading_varset: Usd.VariantSet = default_prim.GetVariantSets().AddVariantSet("shading")
+
+# Add Variants to the Variant Set
+shading_varset.AddVariant("cell_shading")
+shading_varset.AddVariant("realistic")
+
+select_variant_from_varaint_set(default_prim, "shading", "realistic")
+
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+
+assert default_prim.GetVariantSets().GetVariantSet("shading").GetVariantSelection() == "realistic"
+### Instruction:
+Select a Variant for a Variant Set，USDA
+### Input:
+### Output:
+#Apart from selecting a default Variant when you create a Variant Set, you may want to change the selection in other USD layers. For example, a model could have a shading Variant Set defined, but when you Reference that model a few times in a Stage, you may want to select a different shading Variant for each Reference.
+This is an example USDA result from creating a Variant Set, adding two Variants to the set, and selecting the current Variant to realistic.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World" (
+    variants = {
+        string shading = "realistic"
+    }
+    prepend variantSets = "shading"
+)
+{
+    variantSet "shading" = {
+        "cell_shading" {
+
+        }
+        "realistic" {
+
+        }
+    }
+}
+### Instruction:
+Show or Hide a Prim，USD Python
+### Input:
+### Output:
+#See USD: Visibility. You can show or hide a prim by setting the visibility attribute to either inherited or invisible.
+
+If the value is set to inherited, then prim will either be visible or invisible depending on the prim’s parent visibility value. If the value is set to invisible, then the prim and all children prims will be invisible.
+#You can use the USD API Usd.Prim.GetAttribute() to get an attribute of a prim and then use Usd.Attribute.Set() to change the value. The attribute name for visibility is visibility and you can set it to the value of inherited or invisible.
+from typing import Union
+from pxr import Sdf, Usd, UsdGeom
+
+
+def get_visibility_attribute(
+    stage: Usd.Stage, prim_path: str
+) -> Union[Usd.Attribute, None]:
+    """Return the visibility attribute of a prim"""
+    path = Sdf.Path(prim_path)
+    prim = stage.GetPrimAtPath(path)
+    if not prim.IsValid():
+        return None
+    visibility_attribute = prim.GetAttribute("visibility")
+    return visibility_attribute
+
+
+def hide_prim(stage: Usd.Stage, prim_path: str):
+    """Hide a prim
+
+    Args:
+        stage (Usd.Stage, required): The USD Stage
+        prim_path (str, required): The prim path of the prim to hide
+    """
+    visibility_attribute = get_visibility_attribute(stage, prim_path)
+    if visibility_attribute is None:
+        return
+    visibility_attribute.Set("invisible")
+
+
+def show_prim(stage: Usd.Stage, prim_path: str):
+    """Show a prim
+
+    Args:
+        stage (Usd.Stage, required): The USD Stage
+        prim_path (str, required): The prim path of the prim to show
+    """
+    visibility_attribute = get_visibility_attribute(stage, prim_path)
+    if visibility_attribute is None:
+        return
+    visibility_attribute.Set("inherited")
+
+
+#############
+# Full Usage
+#############
+# Here you will show your code sample in context. Add any additional imports
+# that you may need for your "Full Usage" code
+
+# Create a simple in-memory stage with a Cube
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim_path = Sdf.Path("/World")
+default_prim = UsdGeom.Xform.Define(stage, default_prim_path)
+stage.SetDefaultPrim(default_prim.GetPrim())
+cube_path = default_prim_path.AppendPath("Cube")
+cube = UsdGeom.Cube.Define(stage, cube_path)
+
+# The prim is initially visible. Assert so and then demonstrate how to toggle
+# it off and on
+assert get_visibility_attribute(stage, cube_path).Get() == "inherited"
+hide_prim(stage, cube_path)
+assert get_visibility_attribute(stage, cube_path).Get() == "invisible"
+show_prim(stage, cube_path)
+assert get_visibility_attribute(stage, cube_path).Get() == "inherited"
+
+# Print the USDA out
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+### Instruction:
+Check if a Property Exists，Python Kit Commands
+### Input:
+### Output:
+#See USD: Visibility. You can show or hide a prim by setting the visibility attribute to either inherited or invisible.
+
+If the value is set to inherited, then prim will either be visible or invisible depending on the prim’s parent visibility value. If the value is set to invisible, then the prim and all children prims will be invisible.
+#You can use the ChangeProperty command from the omni.kit.commands extension to change the attribute of any prim. In Omniverse applications, you can discover the attribute name by hovering over the label in the Property Window and inspecting the tooltip.
+
+You can find more information about the Kit command API at the omni.kit.commands extension documentation.
+import omni.kit.commands
+import omni.usd
+from pxr import Sdf
+
+
+def hide_prim(prim_path: str):
+    """Hide a prim
+
+    Args:
+        prim_path (str, required): The prim path of the prim to hide
+    """
+    set_prim_visibility_attribute(prim_path, "invisible")
+
+
+def show_prim(prim_path: str):
+    """Show a prim
+
+    Args:
+        prim_path (str, required): The prim path of the prim to show
+    """
+    set_prim_visibility_attribute(prim_path, "inherited")
+
+
+def set_prim_visibility_attribute(prim_path: str, value: str):
+    """Set the prim visibility attribute at prim_path to value
+
+    Args:
+        prim_path (str, required): The path of the prim to modify
+        value (str, required): The value of the visibility attribute
+    """
+    # You can reference attributes using the path syntax by appending the
+    # attribute name with a leading `.`
+    prop_path = f"{prim_path}.visibility"
+    omni.kit.commands.execute(
+        "ChangeProperty", prop_path=Sdf.Path(prop_path), value=value, prev=None
+    )
+
+
+"""
+Full Usage
+"""
+
+# Path to a prim in the open stage
+prim_path = "/World/Cube"
+stage = omni.usd.get_context().get_stage()
+prim = stage.GetPrimAtPath(prim_path)
+assert prim.IsValid()
+
+# Manually confirm that the prim is not visible in the viewport after calling
+# hide_prim. You should comment out the below show_prim call and assert.
+hide_prim(prim_path)
+assert prim.GetAttribute("visibility").Get() == "invisible"
+
+# Manually confirm that the prim is visible in the viewport after calling 
+# show_prim
+show_prim(prim_path)
+assert prim.GetAttribute("visibility").Get() == "inherited"
+### Instruction:
+Check if a Property Exists，USDA
+### Input:
+### Output:
+#See USD: Visibility. You can show or hide a prim by setting the visibility attribute to either inherited or invisible.
+
+If the value is set to inherited, then prim will either be visible or invisible depending on the prim’s parent visibility value. If the value is set to invisible, then the prim and all children prims will be invisible.
+#This is an example USDA result from creating a Cube and setting the visibility property to inherited. You can edit the value to invisible to hide the prim.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Cube "Cube"
+    {
+        token visibility = "inherited"
+    }
+}
+### Instruction:
+Create a Perspective Camera，USD Python
+### Input:
+### Output:
+#You can define a new camera on a stage using UsdGeom.Camera. The Camera prim has a projection attribute that can be set to perspective.
+#With the USD API, you can use UsdGeom.Camera.CreateProjectionAttr() to create the projection attribute and then set the value with Usd.Attribute.Set().
+from pxr import Usd, Sdf, UsdGeom
+
+def create_perspective_camera(stage: Usd.Stage, prim_path: str="/World/MyPerspCam") -> UsdGeom.Camera:
+    camera_path = Sdf.Path(prim_path)
+    usd_camera: UsdGeom.Camera = UsdGeom.Camera.Define(stage, camera_path)
+    usd_camera.CreateProjectionAttr().Set(UsdGeom.Tokens.perspective)
+    return usd_camera
+
+
+#############
+# Full Usage
+#############
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create the perspective camera at /World/MyPerspCam
+cam_path = default_prim.GetPath().AppendPath("MyPerspCam")
+camera = create_perspective_camera(stage, cam_path)
+
+# Export the complete Stage as a string and print it.
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check that the camera was created
+prim = camera.GetPrim()
+assert prim.IsValid()
+assert camera.GetPath() == Sdf.Path(cam_path)
+assert prim.GetTypeName() == "Camera"
+projection = camera.GetProjectionAttr().Get()
+assert projection == UsdGeom.Tokens.perspective
+Here is how to you can set some other common attributes on the camera:
+
+from pxr import Usd, Sdf, UsdGeom
+
+def create_perspective_35mm_camera(stage: Usd.Stage, prim_path: str="/World/MyPerspCam") -> UsdGeom.Camera:
+    camera_path = Sdf.Path(prim_path)
+    usd_camera: UsdGeom.Camera = UsdGeom.Camera.Define(stage, camera_path)
+    usd_camera.CreateProjectionAttr().Set(UsdGeom.Tokens.perspective)
+    usd_camera.CreateFocalLengthAttr().Set(35)
+    # Set a few other common attributes too.
+    usd_camera.CreateHorizontalApertureAttr().Set(20.955)
+    usd_camera.CreateVerticalApertureAttr().Set(15.2908)
+    usd_camera.CreateClippingRangeAttr().Set((0.1,100000))
+    return usd_camera
+
+
+#############
+# Full Usage
+#############
+
+# Create an in-memory Stage with /World Xform prim as the default prim
+stage: Usd.Stage = Usd.Stage.CreateInMemory()
+default_prim = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
+stage.SetDefaultPrim(default_prim.GetPrim())
+
+# Create the perspective camera at path /World/MyPerspCam with 35mm
+# set for the focal length.
+cam_path = default_prim.GetPath().AppendPath("MyPerspCam")
+camera = create_perspective_35mm_camera(stage, cam_path)
+
+# Export the complete Stage as a string and print it.
+usda = stage.GetRootLayer().ExportToString()
+print(usda)
+
+# Check the camera attributes
+focal_len = camera.GetFocalLengthAttr().Get()
+assert focal_len == 35.0
+clip_range = camera.GetClippingRangeAttr().Get()
+assert clip_range == (0.1,100000)
+### Instruction:
+Create a Perspective Camera，Python Kit Commands
+### Input:
+### Output:
+#You can define a new camera on a stage using UsdGeom.Camera. The Camera prim has a projection attribute that can be set to perspective.
+#The CreatePrimWithDefaultXform command in Kit can create a Camera prim and you can optionally set camera attributes values during creation. You must use the attribute token names as the keys for the attributes dictionary. In Omniverse applications, you can explore the names by hovering over a property label in the Property Window and reading it from the tooltip.
+import omni.kit.commands
+from pxr import UsdGeom
+
+
+def create_perspective_camera(prim_path: str="/World/MyPerspCam"):
+    """Create a perspective camera
+
+    Args:
+        prim_path (str, optional): The prim path where the camera should be created. Defaults to "/World/MyPerspCam".
+    """
+
+    omni.kit.commands.execute("CreatePrimWithDefaultXform",
+       prim_type="Camera",
+       prim_path=prim_path,
+       attributes={
+           "projection": UsdGeom.Tokens.perspective,
+           "focalLength": 35,
+           "horizontalAperture": 20.955,
+           "verticalAperture": 15.2908,
+           "clippingRange": (0.1, 100000)
+       }
+    )
+
+
+#############    
+# Full Usage
+#############
+import omni.usd
+
+
+# Create a perspective camera at /World/MyPerspCam
+path = "/World/MyPerspCam"
+create_perspective_camera(path)
+
+# Check that the camera was created
+stage = omni.usd.get_context().get_stage()
+prim = stage.GetPrimAtPath(path)
+assert prim.IsValid() == True
+assert prim.GetTypeName() == "Camera"
+projection = prim.GetAttribute("projection").Get()
+assert projection == UsdGeom.Tokens.perspective
+### Instruction:
+Create a Perspective Camera，USDA
+### Input:
+### Output:
+#You can define a new camera on a stage using UsdGeom.Camera. The Camera prim has a projection attribute that can be set to perspective.
+#This is an example USDA result from creating a Camera and setting the projection to perspective. All other Properties are using the default values from the UsdGeomCamera schema definition.
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+def Xform "World"
+{
+    def Camera "MyPerspCam"
+    {
+        token projection = "perspective"
+    }
+}
+### Instruction:
+Viewport Camera，Look at a Prim
+### Input:
+### Output:
+target_prim_xform_mat = UsdGeom.Xformable(target_prim).GetLocalTransformation()
+
+# The target location (target_loc) is for this particular prim,
+# but could also be any arbitrary location
+target_loc = target_prim_xform_mat.ExtractTranslation()
+
+viewport = get_active_viewport()
+active_camera_path = viewport.camera_path.pathString
+camera_pos = self.camera_target_pos
+
+new_cam_mat = Gf.Matrix4d(1.0)
+new_cam_mat.SetLookAt(camera_pos, target_loc, Gf.Vec3d(0,1,0))
+destXformAttr = self.camera_prim.GetAttribute('xformOp:transform')
+destXformAttr.Set(new_cam_mat.GetInverse())
+### Instruction:
+Viewport Camera，Change the Active Camera
+### Input:
+### Output:
+from omni.kit.viewport.utility import get_active_viewport
+
+camera_path = "/World/Camera/MyNewCamera"
+viewport = get_active_viewport()
+
+if not viewport:
+    raise RuntimeError("No active Viewport")
+
+# Set the Viewport's active camera to the
+# camera prim path you want to switch to.
+viewport.camera_path = camera_path
+### Instruction:
+Viewport Camera，Look at a Prim
+### Input:
+### Output:
+target_prim_xform_mat = UsdGeom.Xformable(target_prim).GetLocalTransformation()
+
+# The target location (target_loc) is for this particular prim,
+# but could also be any arbitrary location
+target_loc = target_prim_xform_mat.ExtractTranslation()
+
+viewport = get_active_viewport()
+active_camera_path = viewport.camera_path.pathString
+camera_pos = self.camera_target_pos
+
+new_cam_mat = Gf.Matrix4d(1.0)
+new_cam_mat.SetLookAt(camera_pos, target_loc, Gf.Vec3d(0,1,0))
+destXformAttr = self.camera_prim.GetAttribute('xformOp:transform')
+destXformAttr.Set(new_cam_mat.GetInverse())
+### Instruction:
+Viewport Camera，Change the Active Camera
+### Input:
+### Output:
+from omni.kit.viewport.utility import get_active_viewport
+
+camera_path = "/World/Camera/MyNewCamera"
+viewport = get_active_viewport()
+
+if not viewport:
+    raise RuntimeError("No active Viewport")
+
+# Set the Viewport's active camera to the
+# camera prim path you want to switch to.
+viewport.camera_path = camera_path
+### Instruction:
+Viewport Camera，Look at a Prim
+### Input:
+### Output:
+target_prim_xform_mat = UsdGeom.Xformable(target_prim).GetLocalTransformation()
+
+# The target location (target_loc) is for this particular prim,
+# but could also be any arbitrary location
+target_loc = target_prim_xform_mat.ExtractTranslation()
+
+viewport = get_active_viewport()
+active_camera_path = viewport.camera_path.pathString
+camera_pos = self.camera_target_pos
+
+new_cam_mat = Gf.Matrix4d(1.0)
+new_cam_mat.SetLookAt(camera_pos, target_loc, Gf.Vec3d(0,1,0))
+destXformAttr = self.camera_prim.GetAttribute('xformOp:transform')
+destXformAttr.Set(new_cam_mat.GetInverse())
+### Instruction:
+Viewport Camera，Change the Active Camera
+### Input:
+### Output:
+from omni.kit.viewport.utility import get_active_viewport
+
+camera_path = "/World/Camera/MyNewCamera"
+viewport = get_active_viewport()
+
+if not viewport:
+    raise RuntimeError("No active Viewport")
+
+# Set the Viewport's active camera to the
+# camera prim path you want to switch to.
+viewport.camera_path = camera_path
+### Instruction:
+Focus, Zoom or Frame a Prim，Basic
+### Input:
+### Output:
+#You may want to frame one or more prims to help orient or direct the user’s attention within the viewport. There are two ways to do this in Kit. We provide a convenience function in the omni.kit.viewport utility extension called frame_viewport_selection. This is easier to use, but offers less control. The more advanced option, uses the FramePrimsCommand.
+from omni.kit.viewport.utility import get_active_viewport, frame_viewport_selection
+import omni.usd
+
+prim_path = "/World/My/Prim"
+ctx = omni.usd.get_context()
+# The second arg is unused. Any boolean can be used.
+ctx.get_selection().set_selected_prim_paths([prim_path], True)
+frame_viewport_selection(active_viewport)
+### Instruction:
+Focus, Zoom or Frame a Prim，Advanced
+### Input:
+### Output:
+#You may want to frame one or more prims to help orient or direct the user’s attention within the viewport. There are two ways to do this in Kit. We provide a convenience function in the omni.kit.viewport utility extension called frame_viewport_selection. This is easier to use, but offers less control. The more advanced option, uses the FramePrimsCommand.
+from omni.kit.viewport.utility import get_active_viewport, frame_viewport_selection
+import omni.kit.commands
+from omni.kit.viewport.utility import get_active_viewport
+from pxr import Sdf, Usd, UsdGeom
+
+# Useful variables that will be passed to the FramePrimsCommand
+camera_path = None
+prim_to_frame = "/World/Cube"
+time = Usd.TimeCode.Default()
+resolution = (1, 1)
+zoom = 0.6
+
+# Get the stage
+stage = omni.usd.get_context().get_stage()
+
+active_viewport = get_active_viewport()
+if active_viewport:
+    # Pull meaningful information from the Viewport to frame a specific prim
+    time = active_viewport.time
+    resolution = active_viewport.resolution
+    camera_path = active_viewport.camera_path
+else:
+    # Otherwise, create a camera that will be used to frame the prim_to_frame
+    camera_path = "/World/New_Camera"
+    UsdGeom.Camera.Define(stage, camera_path)
+
+# Finally run the undo-able FramePrimsCommand
+omni.kit.commands.execute(
+    'FramePrimsCommand',
+    # The path to the camera that is begin moved
+    prim_to_move=camera_path,
+    # The prim that is begin framed / looked at
+    prims_to_frame=[prim_to_frame],
+    # The Usd.TimCode that camera_path will use to set new location and orientation
+    time_code=time,
+    # The aspect_ratio of the image-place that is being viewed
+    aspect_ratio=resolution[0] / resolution[1],
+    # Additional slop to use for the framing
+    zoom=zoom
+)
+### Instruction:
+Get the Active Viewport Window
+### Input:
+### Output:
+#To interact with the active viewport, you can get the active viewport window. ViewportWindow.viewport_api is a ViewportAPI object that allows even further interaction with the viewport.
+from omni.kit.viewport.utility import get_active_viewport_window
+
+# Get the default Viewport window
+viewport_window = get_active_viewport_window()
+
+print("")
+print(f"Active ViewportWindow is {viewport_window}")
+print(f"Viewport is available with .viewport_api, its resolution is: {viewport_window.viewport_api.resolution}")
+
+# get_active_viewport_window can fail if querying for a specific ViewportWindow that doesn't exists
+non_existent_viewport_window_name = "This Viewport Doesn't Exist"
+non_existent_viewport_window = get_active_viewport_window(window_name=non_existent_viewport_window_name)
+
+print("")
+print(f"Viewport window named {non_existent_viewport_window_name} is {non_existent_viewport_window}")
