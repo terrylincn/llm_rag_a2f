@@ -1,14 +1,25 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse
 import os
 import shutil
 import searchk
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# 设置 CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 允许所有来源，或者你可以指定来源 ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],  # 允许所有方法
+    allow_headers=["*"],  # 允许所有头
+)
+
+upload_directory = "uploaded_files"
+
 @app.post("/upload")
 async def upload_files(files: list[UploadFile] = File(...)):
-    upload_directory = "uploaded_files"
     os.makedirs(upload_directory, exist_ok=True)
 
     for file in files:
@@ -31,7 +42,6 @@ async def main():
     """
     return HTMLResponse(content=content)
 
-
 @app.post("/search")
 async def search(
 text: str = Form(...,title="",description=""), 
@@ -39,6 +49,30 @@ text: str = Form(...,title="",description=""),
     ret = searchk.query(text)
     return ret
 
+@app.post("/build")
+async def build(
+):
+    searchk.rebuild()
+    return {"ret": True}
+
+@app.get("/files")
+async def list_files():
+    files = []
+    for filename in os.listdir(upload_directory):
+        file_path = os.path.join(upload_directory, filename)
+        if os.path.isfile(file_path):
+            files.append(filename)
+    return files
+
+@app.delete("/files/{file_name}")
+async def delete_file(file_name: str):
+    file_path = os.path.join(upload_directory, file_name)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return {"message": f"File '{file_name}' deleted successfully."}
+    else:
+        raise HTTPException(status_code=404, detail=f"File '{file_name}' not found.")
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

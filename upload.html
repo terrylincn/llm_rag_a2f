@@ -3,14 +3,6 @@
 <head>
     <title>文件上传和删除</title>
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
 
         #drop_area {
             border: 3px dashed #ccc;
@@ -23,9 +15,25 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-        #file_list {
-            list-style: none;
+        .container {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f8f8;
+        }
+
+        .upload-area {
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            list-style-type: none;
             padding: 0;
+        }
+
+        .file-list li {
+            margin-bottom: 10px;
         }
 
         .file-item {
@@ -54,19 +62,34 @@
     </style>
 </head>
 <body>
-    <form id="upload_form" action="http://localhost:8081/upload" method="post" enctype="multipart/form-data">
+    <form id="upload_form" action="http://localhost:8000/upload" method="post" enctype="multipart/form-data">
+    <div class="upload-area">
         <div id="drop_area">将文件拖到这里或点击上传</div>
         <input type="file" id="file_input" name="files" multiple style="display:none;">
         <button type="button" id="upload_btn" class="upload-btn">选择文件</button>
-        <button type="submit" id="submit_btn" class="upload-btn">上传文件</button>
-    </form>
-    <ul id="file_list"></ul>
+    </div>
 
+    <div class="container" id="uploading_files_container">
+        <h2>正在上传的文件</h2>
+        <ul id="uploading_files" class="file-list"></ul>
+        <button type="submit" id="submit_btn" class="upload-btn">上传文件</button>
+    </div>
+
+    <div class="container" id="existing_files_container">
+        <h2>现有文件</h2>
+        <ul id="existing_files" class="file-list"></ul>
+        <button type="button" id="rebuild_btn" class="upload-btn">重建知识库</button>
+    </div>
+
+    </form>
     <script>
         let uploadForm = document.getElementById('upload_form');
         let fileInput = document.getElementById('file_input');
         let uploadBtn = document.getElementById('upload_btn');
-        let fileList = document.getElementById('file_list');
+        let rebuildBtn = document.getElementById('rebuild_btn');
+        //let fileList = document.getElementById('file_list');
+        let uploadingFilesList = document.getElementById('uploading_files');
+        let existingFilesList = document.getElementById('existing_files');
 
         uploadBtn.addEventListener('click', function() {
             fileInput.click();
@@ -78,10 +101,14 @@
             uploadFiles(formData);
         });
 
+        rebuildBtn.addEventListener('click', function() {
+            rebuildKnowledgeBase();
+        });
+
         function handleFiles() {
             let files = fileInput.files;
             for (let i = 0, len = files.length; i < len; i++) {
-                displayFile(files[i]);
+                displayUploadingFiles(files[i]);
             }
         }
 
@@ -96,22 +123,78 @@
             deleteBtn.innerText = '删除';
             deleteBtn.className = 'delete-btn';
             deleteBtn.onclick = function() {
-                fileList.removeChild(li);
+                existingFilesList.removeChild(li);
             };
             li.appendChild(span);
             li.appendChild(deleteBtn);
-            fileList.appendChild(li);
+            existingFilesList.appendChild(li);
+        }
+
+        function displayUploadingFiles() {
+            uploadingFilesList.innerHTML = '';
+            Array.from(fileInput.files).forEach(file => {
+                let li = document.createElement('li');
+                li.innerText = file.name;
+                uploadingFilesList.appendChild(li);
+            });
         }
 
         function uploadFiles(formData) {
-            fetch('http://localhost:8081/upload', {
+            fetch('http://localhost:8000/upload', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
-            .then(data => console.log(data))
+            .then(data => {
+                console.log(data);
+                refreshFileList();
+            })
             .catch(error => console.error('Error:', error));
         }
+
+        function refreshFileList() {
+            fetch('http://localhost:8000/files')
+            .then(response => response.json())
+            .then(files => {
+                existingFilesList.innerHTML = '';
+                files.forEach(file => {
+                    let li = document.createElement('li');
+                    li.innerText = file;
+                    let deleteBtn = document.createElement('button');
+                    deleteBtn.innerText = '删除';
+                    deleteBtn.onclick = function() { deleteFile(file); };
+                    li.appendChild(deleteBtn);
+                    existingFilesList.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function deleteFile(fileName) {
+            fetch(`http://localhost:8000/files/${fileName}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                refreshFileList();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function rebuildKnowledgeBase() {
+            fetch('http://localhost:8000/build', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Rebuild successful:', data);
+                refreshFileList();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        // 当页面加载完成时，刷新文件列表
+        window.onload = refreshFileList;
     </script>
 </body>
 </html>
