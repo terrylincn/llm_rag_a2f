@@ -21,7 +21,7 @@ def query(question):
     print(f'encode:{t2-t1}')
 
     # Perform KNN search to find the best matches (indices and source text)
-    best_matches = knn_search(question_embedding, enhanced_kb.vectorized_knowledge, k=10)
+    best_matches = knn_search(question_embedding, enhanced_kb.vectorized_knowledge, k=5)
     t3 = time.time()
     print(f'knn_search:{t3-t2}')
 
@@ -31,6 +31,8 @@ def query(question):
         sourcetext += f"{i}. Index: {index}, Source Text: {source_text}"
 
     systemPrompt = f"Only use the following information to answer the question. Do not use anything else: {sourcetext}"
+    print(f'systemPrompt:{systemPrompt}')
+    print(f'systemPrompt len:{len(systemPrompt)}')
 
     url = "http://13902254981.tpddns.cn:11434/api/generate"#"http://localhost:11434/api/generate"
 
