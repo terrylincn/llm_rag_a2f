@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文件上传和删除</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #drop_area {
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        #file_list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .file-item {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9f9f9;
+        }
+
+        .delete-btn, .upload-btn {
+            cursor: pointer;
+            color: red;
+            border: none;
+            background: none;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+
+        .upload-btn {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <form id="upload_form" action="http://localhost:8081/upload" method="post" enctype="multipart/form-data">
+        <div id="drop_area">将文件拖到这里或点击上传</div>
+        <input type="file" id="file_input" name="files" multiple style="display:none;">
+        <button type="button" id="upload_btn" class="upload-btn">选择文件</button>
+        <button type="submit" id="submit_btn" class="upload-btn">上传文件</button>
+    </form>
+    <ul id="file_list"></ul>
+
+    <script>
+        let uploadForm = document.getElementById('upload_form');
+        let fileInput = document.getElementById('file_input');
+        let uploadBtn = document.getElementById('upload_btn');
+        let fileList = document.getElementById('file_list');
+
+        uploadBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        uploadForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            let formData = new FormData(uploadForm);
+            uploadFiles(formData);
+        });
+
+        function handleFiles() {
+            let files = fileInput.files;
+            for (let i = 0, len = files.length; i < len; i++) {
+                displayFile(files[i]);
+            }
+        }
+
+        fileInput.addEventListener('change', handleFiles, false);
+
+        function displayFile(file) {
+            let li = document.createElement('li');
+            li.className = 'file-item';
+            let span = document.createElement('span');
+            span.innerText = file.name;
+            let deleteBtn = document.createElement('button');
+            deleteBtn.innerText = '删除';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = function() {
+                fileList.removeChild(li);
+            };
+            li.appendChild(span);
+            li.appendChild(deleteBtn);
+            fileList.appendChild(li);
+        }
+
+        function uploadFiles(formData) {
+            fetch('http://localhost:8081/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

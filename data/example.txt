@@ -1,0 +1,14 @@
+### Instruction:
+Modify Audio Attributes, Set the Pitch
+### Input:
+### Output:
+#Use a Prim to play an Audio Clip once.
+import omni
+
+usd_context = omni.usd.get_context()
+stage = usd_context.get_stage()
+my_audio_prim = stage.GetPrimAtPath(my_audio_prim_path)
+my_audio_prim.GetAttribute("loopCount").Set(0)
+
+audio = omni.usd.audio.get_stage_audio_interface()
+audio.spawn_voice(my_audio_prim)
