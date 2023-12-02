@@ -59,6 +59,15 @@
         .upload-btn {
             color: blue;
         }
+
+        .alert {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -189,10 +198,29 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Rebuild successful:', data);
+                showAlert('重建成功');
                 refreshFileList();
             })
             .catch(error => console.error('Error:', error));
         }
+
+
+        function showAlert(message, isError = false) {
+            let alertDiv = document.createElement('div');
+            alertDiv.className = 'alert';
+            if (isError) {
+                alertDiv.style.backgroundColor = '#f44336'; // Red for errors
+            }
+            alertDiv.innerText = message;
+
+            document.body.insertBefore(alertDiv, document.body.firstChild);
+
+            // 自动移除提示信息
+            setTimeout(function() {
+                alertDiv.remove();
+            }, 3000);
+        }
+
         // 当页面加载完成时，刷新文件列表
         window.onload = refreshFileList;
     </script>
