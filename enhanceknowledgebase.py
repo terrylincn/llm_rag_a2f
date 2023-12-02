@@ -10,7 +10,7 @@ def process_text_with_matt_solomatov_toolkit(text):
     return chunks
 
 class EnhancedKnowledgeBase:
-    def __init__(self, directory, model_name='all-MiniLM-L6-v2'):
+    def __init__(self, directory, model_name='./models/sentence-transformers_all-MiniLM-L6-v2'):
         self.directory = directory
         self.model = SentenceTransformer(model_name)
         self.knowledge_base = {}
@@ -42,7 +42,7 @@ class EnhancedKnowledgeBase:
     def get_vectorized_content(self, filename):
         ret = None
         index = 0
-        for vec in self.get_vectorized_content:
+        for vec in self.vectorized_knowledge:
             if vec['url'] == filename:
                 ret = vec
                 break
