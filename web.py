@@ -1,11 +1,14 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import shutil
 import searchk
-from fastapi.middleware.cors import CORSMiddleware
+import tts
+import a2f
 
 app = FastAPI()
+UPLOAD_PATH = os.path.dirname(__file__)
 
 # 设置 CORS
 app.add_middleware(
@@ -16,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],  # 允许所有头
 )
 
-upload_directory = "uploaded_files"
+upload_directory = os.path.join(UPLOAD_PATH, "uploaded_files")
 
 @app.post("/upload")
 async def upload_files(files: list[UploadFile] = File(...)):
@@ -47,6 +50,20 @@ async def search(
 message: str = Form(...,title="",description=""), 
 ):
     ret = searchk.query(message)
+    text = ret['response'][0]
+    
+    import re
+    delimiters = "，|。|\:"  # 分隔符可以是逗号、句号、冒号或空格
+
+    # 使用正则表达式分割字符串
+    result = re.split(delimiters, text)
+
+    for text in result:
+        text = text.replace(".","").replace(" ","")
+        haswav,wav = tts.tts_request(text=text)
+        if haswav:
+            a2f.audio2face(wav)
+
     return ret
 
 @app.post("/build")

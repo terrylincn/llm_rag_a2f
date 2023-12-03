@@ -3,3 +3,6 @@ sentence-transformers
 fastapi
 python-multipart
 uvicorn
+protobuf==3.19
+grpcio
+soundfile
