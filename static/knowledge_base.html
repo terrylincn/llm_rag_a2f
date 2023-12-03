@@ -81,7 +81,7 @@
     <form id="upload_form" action="http://localhost:8000/upload" method="post" enctype="multipart/form-data">
     <div class="upload-area">
         <div id="drop_area">将文件拖到这里或点击上传</div>
-        <input type="file" id="file_input" name="files" multiple style="display:none;">
+        <label for="file_input">files:</label><input type="file" id="file_input" name="files" multiple style="display:none;">
         <button type="button" id="upload_btn" class="upload-btn">选择文件</button>
     </div>
 
@@ -106,6 +106,29 @@
         //let fileList = document.getElementById('file_list');
         let uploadingFilesList = document.getElementById('uploading_files');
         let existingFilesList = document.getElementById('existing_files');
+
+        let dropArea = document.getElementById('drop_area');
+
+        dropArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFiles, false);
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('active');
+        });
+
+        dropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('active');
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('active');
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            fileInput.files = files;
+            handleFiles();
+        });
 
         uploadBtn.addEventListener('click', function() {
             fileInput.click();
