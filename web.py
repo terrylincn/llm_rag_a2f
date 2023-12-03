@@ -44,9 +44,9 @@ async def main():
 
 @app.post("/search")
 async def search(
-text: str = Form(...,title="",description=""), 
+message: str = Form(...,title="",description=""), 
 ):
-    ret = searchk.query(text)
+    ret = searchk.query(message)
     return ret
 
 @app.post("/build")

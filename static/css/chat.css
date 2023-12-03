@@ -1,0 +1,53 @@
+body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#chat-box {
+    flex-grow: 1;
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin: 10px auto; /* 居中对话框 */
+    width: 80%;
+}
+
+.form-container {
+    display: flex; /* 使用flex布局 */
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直居中 */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0; /* 使容器横向铺满 */
+    background-color: white;
+    padding: 10px;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+}
+
+#message-input {
+    width: 60%; /* 控制输入框的宽度 */
+    min-width: 600px; /* 确保输入框有足够的最小宽度 */
+    padding: 10px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+#send-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#send-button:hover {
+    background-color: #0056b3;
+}

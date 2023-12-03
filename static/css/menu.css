@@ -1,0 +1,27 @@
+.top-nav {
+    background-color: #333;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.top-nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.top-nav ul li {
+    display: inline;
+    margin-right: 20px;
+}
+
+.top-nav ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+.top-nav ul li a:hover {
+    text-decoration: underline;
+}

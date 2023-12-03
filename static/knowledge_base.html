@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>文件上传和删除</title>
+    <link rel="stylesheet" href="css/menu.css">
     <style>
 
         #drop_area {
@@ -71,6 +72,12 @@
     </style>
 </head>
 <body>
+    <nav class="top-nav">
+        <ul>
+            <li><a href="chatbox.html">Chat</a></li>
+            <!-- 你可以在这里添加更多的菜单项 -->
+        </ul>
+    </nav>
     <form id="upload_form" action="http://localhost:8000/upload" method="post" enctype="multipart/form-data">
     <div class="upload-area">
         <div id="drop_area">将文件拖到这里或点击上传</div>
