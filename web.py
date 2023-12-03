@@ -53,13 +53,18 @@ message: str = Form(...,title="",description=""),
     text = ret['response'][0]
     
     import re
-    delimiters = "，|。|\:"  # 分隔符可以是逗号、句号、冒号或空格
+    import settings
+    if settings.language == 'en':
+        delimiters = ",|\.|\:"
+    else:
+        delimiters = "，|。|\:"  # 分隔符可以是逗号、句号、冒号或空格
 
     # 使用正则表达式分割字符串
     result = re.split(delimiters, text)
 
     for text in result:
-        text = text.replace(".","").replace(" ","")
+        print(text)
+        #text = text.replace(".","").replace(" ","")
         haswav,wav = tts.tts_request(text=text)
         if haswav:
             a2f.audio2face(wav)
