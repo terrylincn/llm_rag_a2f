@@ -4,6 +4,7 @@ import json
 import time
 from search import knn_search
 from enhanceknowledgebase import EnhancedKnowledgeBase
+from settings import llama_api_url, ollama_api_url
 
 directory_path = "uploaded_files"
 enhanced_kb = EnhancedKnowledgeBase(directory_path)
@@ -38,7 +39,7 @@ def query(question):
     print(f'systemPrompt:{systemPrompt}')
     print(f'systemPrompt len:{len(systemPrompt)}')
 
-    url = "http://13902254981.tpddns.cn:9888/api/generate"#"http://localhost:11434/api/generate"
+    url = ollama_api_url
 
     payload = {
     "model": "llama2",#"mistral-openorca",

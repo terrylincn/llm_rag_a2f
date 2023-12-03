@@ -50,12 +50,12 @@ async def search(
 message: str = Form(...,title="",description=""), 
 ):
     ret = searchk.query(message)
-    text = ret['response'][0]
+    text = ret['response']
     
     import re
     import settings
     if settings.language == 'en':
-        delimiters = ",|\.|\:"
+        delimiters = "\.|\n"
     else:
         delimiters = "，|。|\:"  # 分隔符可以是逗号、句号、冒号或空格
 
@@ -64,6 +64,8 @@ message: str = Form(...,title="",description=""),
 
     for text in result:
         print(text)
+        if len(text.strip())<=1:
+            continue
         #text = text.replace(".","").replace(" ","")
         haswav,wav = tts.tts_request(text=text)
         if haswav:
