@@ -97,6 +97,34 @@ async def delete_file(file_name: str):
     else:
         raise HTTPException(status_code=404, detail=f"File '{file_name}' not found.")
     
+@app.post("/streamingsearch")
+async def streamingsearch(
+message: str = Form(...,title="",description=""), 
+):
+    import streamsearchk
+    ret = streamsearchk.streamquery(message, streaming_tts)
+    return ret
+
+import queue
+import threading
+import time
+tts_q = queue.Queue()
+
+def tts_thread():
+    while True:
+        if not tts_q.empty():
+            text = tts_q.get()
+            haswav,wav = tts.tts_request(text=text)
+            if haswav:
+                a2f.audio2face(wav)
+        else:
+            time.sleep(0.1)
+
+t1 = threading.Thread(target=tts_thread, args=())
+t1.start()
+def streaming_tts(text):
+    tts_q.put(text)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

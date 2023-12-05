@@ -1,5 +1,10 @@
 from sentence_transformers import SentenceTransformer
 import os
+import logging
+
+def debug(chunks):
+    for i, chunk in enumerate(chunks):
+        print(f'index:{i}, text:{chunk}')
 
 # 假设函数，用于模拟 matt_solomatov_toolkit 的文本处理
 def process_text_with_matt_solomatov_toolkit(text):
@@ -7,6 +12,7 @@ def process_text_with_matt_solomatov_toolkit(text):
     # 这里简单地将文本分割为句子作为示例
     #return text.split('. ')
     chunks = chunker(text)
+    debug(chunks)
     return chunks
 
 class EnhancedKnowledgeBase:

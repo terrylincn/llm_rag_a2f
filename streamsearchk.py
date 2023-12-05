@@ -4,6 +4,7 @@ import json
 import time
 from search import knn_search
 from enhanceknowledgebase import EnhancedKnowledgeBase
+from settings import llama_api_url, ollama_api_url
 
 directory_path = "uploaded_files"
 enhanced_kb = EnhancedKnowledgeBase(directory_path)
@@ -16,7 +17,7 @@ def rebuild():
     enhanced_kb.build_knowledge_base()
     enhanced_kb.vectorize_knowledge_base()
 
-def streamquery(question):
+def streamquery(question, callback):
     context = []
     # Embed the user's question
     t1 = time.time()
@@ -38,7 +39,7 @@ def streamquery(question):
     print(f'systemPrompt:{systemPrompt}')
     print(f'systemPrompt len:{len(systemPrompt)}')
 
-    url = "http://13902254981.tpddns.cn:9888/api/generate"#"http://localhost:11434/api/generate"
+    url = ollama_api_url
 
     payload = {
     "model": "llama2",#"mistral-openorca",
@@ -60,16 +61,28 @@ def streamquery(question):
                       stream=True)
     r.raise_for_status()
 
+    text = ""
+    tokens = 0
     for line in r.iter_lines():
         body = json.loads(line)
         response_part = body.get('response', '')
         # the response streams one token at a time, print that as we receive it
         print(response_part, end='', flush=True)
+        tokens += 1
+        if response_part in ['.',':']:
+            if len(text) > 0 and tokens >= 10 and text[-1] not in ['1','2','3','4','5','6','7','8','9']:
+                callback(text)
+                text = ""
+                tokens = 0
+            else:
+                text = text + response_part
+        else:
+            text = text + response_part
 
         if 'error' in body:
             raise Exception(body['error'])
 
         if body.get('done', False):
             return body
-
+    return None
     
