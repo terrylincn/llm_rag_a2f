@@ -1,9 +1,9 @@
 import requests
 import json
-from settings import language
+from settings import language, TTS_URL
 
 def tts_request(text):
-    url = "http://13902254981.tpddns.cn:8888/generate2"#"http://localhost:11434/api/generate"
+    url = TTS_URL
 
     payload = {
         "content": text,
