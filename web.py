@@ -20,6 +20,7 @@ app.add_middleware(
 )
 
 upload_directory = os.path.join(UPLOAD_PATH, "uploaded_files")
+os.makedirs(upload_directory, exist_ok=True)
 
 @app.post("/upload")
 async def upload_files(files: list[UploadFile] = File(...)):
