@@ -6,6 +6,8 @@ pip install -r requirements.txt
 if you are using ollama, just launch ollama with: ollama serve
 if you are using native llama, launch python3 llamaapi.py
 
+in case you launch the llama in another machine, change the url in the settings.py
+
 launch python web.py
 
-open static/chatbox.html
+use your favorite browsewr to open static/chatbox.html
